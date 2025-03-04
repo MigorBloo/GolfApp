@@ -4,6 +4,7 @@ import './GolferTable.css';
 function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
+    const [selectedGolfer, setSelectedGolfer] = useState(null);
 
     // Format the date
     const formatDate = (dateString) => {
@@ -64,6 +65,16 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
         return () => clearInterval(timer);
     }, [eventDate, startTime, isWithin24Hours]);
 
+    const handleGolferSelection = (golferName) => {
+        // If clicking the same golfer, deselect it
+        if (selectedGolfer === golferName) {
+            setSelectedGolfer(null);
+        } else {
+            // If clicking a different golfer, select it (automatically deselects previous)
+            setSelectedGolfer(golferName);
+        }
+    };
+
     return (
         <div className="golfer-table-container">
             {/* Event Header Section */}
@@ -115,17 +126,36 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                         <th>Country</th>
                         <th>DK Salary</th>
                         <th>FD Salary</th>
+                        <th>Selection</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {golfers.map((golfer, index) => (
-                        <tr key={index}>
-                            <td>{formatPlayerName(golfer.name)}</td>
-                            <td>{golfer.country}</td>
-                            <td>${golfer.dkSalary.toLocaleString()}</td>
-                            <td>${golfer.fdSalary.toLocaleString()}</td>
-                        </tr>
-                    ))}
+                    {golfers.map((golfer, index) => {
+                        const golferName = formatPlayerName(golfer.name);
+                        const isSelected = selectedGolfer === golferName;
+                        
+                        return (
+                            <tr 
+                                key={index}
+                                className={isSelected ? 'selected-row' : ''}
+                                onClick={() => handleGolferSelection(golferName)}
+                            >
+                                <td>{golferName}</td>
+                                <td>{golfer.country}</td>
+                                <td>${golfer.dkSalary.toLocaleString()}</td>
+                                <td>${golfer.fdSalary.toLocaleString()}</td>
+                                <td 
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => handleGolferSelection(golferName)}
+                                    />
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

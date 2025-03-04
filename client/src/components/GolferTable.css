@@ -137,3 +137,28 @@
     color: #e74c3c;
     font-weight: bold;
 }
+
+/* Add these styles to your existing CSS */
+
+.golfer-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.golfer-table tbody tr:hover {
+    background-color: rgba(46, 204, 113, 0.1);
+}
+
+.golfer-table tbody tr.selected-row {
+    background-color: rgba(46, 204, 113, 0.2);
+}
+
+.golfer-table input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.golfer-table td:last-child {
+    text-align: center;
+}
