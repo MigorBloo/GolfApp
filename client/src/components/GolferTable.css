@@ -1,0 +1,129 @@
+.golfer-table-container {
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.event-header {
+    margin-bottom: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.event-name {
+    font-size: 24px;
+    color: #2c5282;
+    margin: 0;
+    padding-bottom: 8px;
+}
+
+.course-container {
+    width: 100%;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    border-top: 1px solid #e2e8f0;
+}
+
+.course-name {
+    font-size: 18px;
+    color: #4a5568;
+    margin:0;
+}
+
+.tournament-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+    padding-top: 8px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+}
+
+.info-label {
+    font-size: 14px;
+    color: #718096;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 16px;
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.golfer-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.golfer-table th {
+    background-color: #f7fafc;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.golfer-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #2d3748;
+}
+
+.golfer-table tr:hover {
+    background-color: #f7fafc;
+}
+
+/* Add these new styles */
+.field-section {
+    margin: 24px 0 16px 0;
+    text-align: left;
+}
+
+.field-heading {
+    font-size: 20px;
+    color: #2c5282;
+    margin: 0 0 12px 0;
+    font-weight: 600;
+}
+
+.sort-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sort-container label {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.sort-select {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background-color: white;
+    color: #2d3748;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.1);
+}
