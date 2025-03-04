@@ -127,3 +127,13 @@
     border-color: #2c5282;
     box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.1);
 }
+
+.countdown.green {
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+.countdown.red {
+    color: #e74c3c;
+    font-weight: bold;
+}

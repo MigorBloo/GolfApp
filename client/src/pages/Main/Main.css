@@ -1,0 +1,67 @@
+.main-grid {
+    display: grid;
+    gap: 20px;
+    padding: 20px;
+}
+
+.main-container {
+    padding: 20px;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-direction: row; /* Explicitly set row direction */
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 1800px;
+    margin: 0 auto;
+    height: 100%;
+}
+
+.rankings-section {
+    flex: 1;
+    max-width: 250px;
+    background-color: #fff; /* Optional: adds visual separation */
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.golfer-section {
+    flex: 2;
+    min-width: 600px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.schedule-section {
+    flex: 1;
+    max-width: 300px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive layout - only apply when screen gets very narrow */
+@media (max-width: 1200px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+    
+    .rankings-section,
+    .golfer-section,
+    .schedule-section {
+        max-width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* Add space between GolferTable and Schedule */
+.main-container > *:not(:last-child) {
+    margin-bottom: 2rem;
+}
