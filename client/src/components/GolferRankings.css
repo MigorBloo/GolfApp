@@ -1,0 +1,147 @@
+.rankings-container {
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 900px; /* Set consistent max-width */
+    margin: 0 auto 20px; /* Center the component and add bottom margin */
+    box-sizing: border-box;
+}
+
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem; /* Reduced font size */
+    margin-top: 10px;
+    table-layout: fixed;
+}
+
+.rankings-table th,
+.rankings-table td {
+    padding: 6px 8px; /* Reduced padding */
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis for overflow text */
+    position: relative;
+}
+
+.rankings-table th {
+    background-color: #f7fafc;
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.8rem; /* Smaller header font */
+}
+
+.rankings-table tr:hover {
+    background-color: #f7fafc;
+}
+
+/* Adjust OWGR column width */
+.rankings-table th:nth-child(1), 
+.rankings-table td:nth-child(1) { 
+    width: 12%; /* Increased from 8% */
+    min-width: 50px; /* Increased from 40px */
+}
+
+/* Slightly reduce other columns to compensate */
+.rankings-table th:nth-child(2), 
+.rankings-table td:nth-child(2) { 
+    width: 23%; /* Reduced from 25% */
+    max-width: 120px;
+}
+
+.rankings-table th:nth-child(3), 
+.rankings-table td:nth-child(3) { 
+    width: 11%; /* Reduced from 12% */
+    max-width: 60px;
+}
+
+/* Keep Tour and Availability the same */
+.rankings-table th:nth-child(4), 
+.rankings-table td:nth-child(4) { 
+    width: 10%;
+    max-width: 50px;
+}
+
+.rankings-table th:nth-child(5), 
+.rankings-table td:nth-child(5) { 
+    width: 15%;
+    min-width: 70px;
+    text-align: center;
+}
+
+.rankings-table td:last-child {
+    text-align: center;
+}
+
+/* Add horizontal scrolling for very narrow screens */
+.rankings-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Add tooltip for truncated text */
+.rankings-table td:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    z-index: 1;
+    background: #333;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+/* Add these styles for the controls */
+.rankings-controls {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.search-box {
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+}
+
+.sort-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-box label {
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+.sort-select {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background-color: white;
+}
+
+/* Ensure the table wrapper takes remaining space */
+.rankings-table-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: calc(100% - 120px); /* Adjust based on controls height */
+}

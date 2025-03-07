@@ -1,26 +1,40 @@
-/* Base styles */
 .app-container {
-  padding: 20px;
-  max-width: 1200px;
+  padding: 5px;
+  max-width: 98%;
   margin: 0 auto;
 }
 
-/* Grid Layout */
+/* Grid Layout - 35-40-25 distribution */
 .main-grid {
   display: grid;
-  grid-template-columns: 250px 1fr 300px;
-  gap: 20px;
-  margin-top: 20px;
+  grid-template-columns: 35fr 40fr 25fr; /* 35% - 40% - 25% distribution */
+  gap: 10px; /* Minimal gap */
+  margin-top: 10px;
+  width: 100%; /* Ensure full width */
 }
 
-/* Section styles */
+/* Section styles - Minimal padding */
 .rankings-section,
 .golfer-table-section,
 .schedule-section {
   background: white;
-  padding: 15px;
+  padding: 10px; /* Minimal padding */
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove the debug borders if they're still there */
+.main-grid::before,
+.rankings-section::before,
+.golfer-table-section::before,
+.schedule-section::before {
+  display: none;
 }
 
 /* Event Header styles */
@@ -85,6 +99,7 @@
   background-color: white;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+
 /* Table styles */
 .golfer-table {
   width: 100%;
@@ -173,6 +188,9 @@
 /* Schedule styles */
 .schedule-container {
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .schedule-container h3 {
@@ -185,6 +203,7 @@
 .schedule-list {
   max-height: 600px;
   overflow-y: auto;
+  flex-grow: 1;
 }
 
 .schedule-item {
@@ -234,10 +253,12 @@
   border-radius: 4px;
 }
 
-/* Rankings and Leaderboard styles */
+/* Rankings and Leaderboard styles - Updated for consistency */
 .rankings-container,
 .leaderboard-container {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .rankings-container h3,
@@ -248,23 +269,39 @@
   border-bottom: 2px solid #eee;
 }
 
-/* Responsive design */
+/* Added for scrollable tables */
+.rankings-table-wrapper,
+.golfer-table-wrapper {
+  overflow-y: auto;
+  flex-grow: 1;
+  max-height: 600px;
+}
+
+.rankings-table,
+.golfer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Responsive design - maintain ratio at larger screens */
 @media screen and (max-width: 1200px) {
   .main-grid {
-      grid-template-columns: 200px 1fr 250px;
-      gap: 15px;
+    grid-template-columns: 35fr 40fr 25fr; /* Maintain the same ratio */
+    gap: 10px;
   }
 }
 
 @media screen and (max-width: 992px) {
   .main-grid {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
   }
   
   .schedule-section,
   .golfer-table-section,
   .rankings-section {
-      margin-bottom: 20px;
+    margin-bottom: 20px;
+    height: auto;
+    max-height: 600px;
   }
 }
