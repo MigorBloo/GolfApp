@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './GolferTable.css';
 import ThisWeekTitle from './ThisWeekTitle';
+import '../components/EventInfo.css';
 
-function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
+function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
     const [selectedGolfer, setSelectedGolfer] = useState(null);
@@ -67,13 +68,14 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
         return () => clearInterval(timer);
     }, [eventDate, startTime, isWithin24Hours]);
 
-    const handleGolferSelection = (golferName) => {
-        // If clicking the same golfer, deselect it
-        if (selectedGolfer === golferName) {
+    const handleGolferSelection = (golfer) => {
+        const playerName = formatPlayerName(golfer.name);
+        if (selectedGolfer === playerName) {
             setSelectedGolfer(null);
+            onGolferSelect(null);
         } else {
-            // If clicking a different golfer, select it (automatically deselects previous)
-            setSelectedGolfer(golferName);
+            setSelectedGolfer(playerName);
+            onGolferSelect(playerName);
         }
     };
 
@@ -89,20 +91,18 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                 <div className="course-container">
                     <h3 className="course-name">{eventInfo.course}</h3>
                 </div>
-                <div className="tournament-info">
+                <div className="event-timing">
                     <div className="info-item">
-                        <span className="info-label">Date</span>
-                        <span className="info-value">{formatDate(eventDate)}</span>
+                        <div className="label">Event Date</div>
+                        <div className="value">{formatDate(eventDate)}</div>
                     </div>
                     <div className="info-item">
-                        <span className="info-label">Start Time</span>
-                        <span className="info-value">{startTime}</span>
+                        <div className="label">Start Time</div>
+                        <div className="value">{startTime}</div>
                     </div>
                     <div className="info-item">
-                        <span className="info-label">Time till Lock</span>
-                        <span className={`info-value countdown ${isWithin24Hours ? 'red' : 'green'}`}>
-                            {timeUntilLock}
-                        </span>
+                        <div className="label">Time till Lock</div>
+                        <div className="value">{timeUntilLock}</div>
                     </div>
                 </div>
             </div>
@@ -155,7 +155,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                             <tr 
                                 key={index}
                                 className={isSelected ? 'selected-row' : ''}
-                                onClick={() => handleGolferSelection(golferName)}
+                                onClick={() => handleGolferSelection(golfer)}
                             >
                                 <td title={golferName}>{golferName}</td>
                                 <td title={golfer.country}>{golfer.country}</td>
@@ -167,7 +167,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
-                                        onChange={() => handleGolferSelection(golferName)}
+                                        onChange={() => handleGolferSelection(golfer)}
                                     />
                                 </td>
                             </tr>

@@ -5,22 +5,6 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.event-header {
-    margin-bottom: 20px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.event-name {
-    font-size: 24px;
-    color: #2c5282;
-    margin: 0;
-    padding-bottom: 8px;
-}
-
 .course-container {
     width: 100%;
     padding: 8px 0;
@@ -32,6 +16,7 @@
     font-size: 18px;
     color: #4a5568;
     margin:0;
+    text-align: center;
 }
 
 .tournament-info {
@@ -49,17 +34,31 @@
     min-width: 120px;
 }
 
-.info-label {
-    font-size: 14px;
-    color: #718096;
-    margin-bottom: 4px;
-    font-weight: 500;
+.info-item .label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
 }
 
-.info-value {
-    font-size: 16px;
+.info-item .value {
     color: #2d3748;
-    font-weight: 600;
+}
+
+/* Add specific style for Time till Lock */
+.info-item:last-child .value {
+    color: #2f855a; /* Green color */
+    font-weight: 700; /* Changed from 500 to 700 for bolder text */
+}
+
+/* Keep these for when the countdown changes */
+.countdown-red {
+    color: #e53e3e !important;
+    font-weight: 700 !important; /* Match the bold weight */
+}
+
+.countdown-ended {
+    color: #4a5568 !important;
+    font-weight: 700 !important; /* Match the bold weight */
 }
 
 .golfer-table {
@@ -257,4 +256,41 @@ table {
     font-weight: 600;
     color: #4a5568;
     border-bottom: 1px solid #e2e8f0;
+}
+
+.event-timing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* Countdown colors */
+.countdown-green {
+    color: #2f855a;
+    font-weight: 500;
+}
+
+.countdown-red {
+    color: #e53e3e;
+    font-weight: 500;
+}
+
+.countdown-ended {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.golfer-table-section {
+    background-color: lightblue; /* Classic beige */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.golfer-table-container {
+    background-color: white;
+    border-radius: 6px;
+    padding: 15px;
 }
