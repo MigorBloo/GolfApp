@@ -160,7 +160,16 @@
 }
 
 .golfer-table td:last-child {
+    width: 16%;
     text-align: center;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+/* Style the checkbox column specifically */
+.golfer-table td:last-child input[type="checkbox"] {
+    margin: 0;
+    padding: 0;
 }
 
 /* Add or update these styles */

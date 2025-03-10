@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './GolferTable.css';
+import ThisWeekTitle from './ThisWeekTitle';
 
 function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
     const [selectedGolfer, setSelectedGolfer] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Format the date
     const formatDate = (dateString) => {
@@ -75,9 +77,13 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
         }
     };
 
+    const filteredGolfers = golfers.filter(golfer => 
+        formatPlayerName(golfer.name).toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <div className="golfer-table-container">
-            {/* Event Header Section */}
+            <ThisWeekTitle />
             <div className="event-header">
                 <h2 className="event-name">{eventInfo.event_name}</h2>
                 <div className="course-container">
@@ -104,6 +110,17 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
             {/* Field Section */}
             <div className="field-section">
                 <h3 className="field-heading">Tournament Field</h3>
+
+                <div className="search-container">
+                     <input
+                     type="text"
+                    placeholder="Search player..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                   />
+               </div>
+               
                 <div className="sort-container">
                     <label htmlFor="sort">Sort By: </label>
                     <select 
@@ -130,7 +147,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {golfers.map((golfer, index) => {
+                    {filteredGolfers.map((golfer, index) => {
                         const golferName = formatPlayerName(golfer.name);
                         const isSelected = selectedGolfer === golferName;
                         
