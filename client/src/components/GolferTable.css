@@ -162,3 +162,90 @@
 .golfer-table td:last-child {
     text-align: center;
 }
+
+/* Add or update these styles */
+table th {
+    font-size: 0.7rem; /* Further reduced font size for headers */
+    padding: 6px 4px; /* Reduced padding */
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis for overflow */
+    text-align: center; /* Center align all headers */
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+table td {
+    font-size: 0.8rem;
+    padding: 6px 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Alignment for specific columns */
+table td:first-child, /* Player */
+table td:nth-child(2) { /* Country */
+    text-align: left;
+}
+
+table td:nth-child(3), /* DK Salary */
+table td:nth-child(4), /* FD Salary */
+table td:nth-child(5) { /* Selection checkbox */
+    text-align: center;
+}
+
+/* Add tooltips for truncated text */
+table th[title],
+table td[title] {
+    position: relative;
+    cursor: help;
+}
+
+/* Adjust column widths */
+table th:first-child, 
+table td:first-child {
+    width: 30%; /* Player name column */
+}
+
+table th:nth-child(2), 
+table td:nth-child(2) {
+    width: 15%; /* Country column */
+}
+
+table th:nth-child(3), 
+table td:nth-child(3) {
+    width: 23%; /* DK Salary column */
+}
+
+table th:nth-child(4), 
+table td:nth-child(4) {
+    width: 23%; /* FD Salary column */
+}
+
+table th:last-child, 
+table td:last-child {
+    width: 9%; /* Selection column */
+}
+
+/* Ensure the table uses these widths */
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Add this specific selector to target the table headers */
+.golfer-table-wrapper table th {
+    font-size: 0.65rem !important; /* Very small font size with !important to override any other styles */
+    padding: 5px 3px !important; /* Minimal padding */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 1px solid #e2e8f0;
+}

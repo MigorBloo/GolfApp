@@ -22,7 +22,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
     };
 
     // Set event date and start time
-    const eventDate = "2025-03-06";
+    const eventDate = "2025-03-13";
     const startTime = "7:00 AM EST";
 
     useEffect(() => {
@@ -122,11 +122,11 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
             <table className="golfer-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Country</th>
-                        <th>DK Salary</th>
-                        <th>FD Salary</th>
-                        <th>Selection</th>
+                        <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}>Player</th>
+                        <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}>Country</th>
+                        <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}>DK Salary</th>
+                        <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}>FD Salary</th>
+                        <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -140,10 +140,10 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange }) {
                                 className={isSelected ? 'selected-row' : ''}
                                 onClick={() => handleGolferSelection(golferName)}
                             >
-                                <td>{golferName}</td>
-                                <td>{golfer.country}</td>
-                                <td>${golfer.dkSalary.toLocaleString()}</td>
-                                <td>${golfer.fdSalary.toLocaleString()}</td>
+                                <td title={golferName}>{golferName}</td>
+                                <td title={golfer.country}>{golfer.country}</td>
+                                <td title={golfer.dkSalary.toLocaleString()}>${golfer.dkSalary.toLocaleString()}</td>
+                                <td title={golfer.fdSalary.toLocaleString()}>${golfer.fdSalary.toLocaleString()}</td>
                                 <td 
                                     onClick={(e) => e.stopPropagation()}
                                 >

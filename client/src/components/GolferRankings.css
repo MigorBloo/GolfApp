@@ -7,6 +7,9 @@
     max-width: 900px; /* Set consistent max-width */
     margin: 0 auto 20px; /* Center the component and add bottom margin */
     box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .rankings-table {
@@ -15,11 +18,12 @@
     font-size: 0.85rem; /* Reduced font size */
     margin-top: 10px;
     table-layout: fixed;
+    transform: rotateY(180deg); /* This flips the table back */
 }
 
 .rankings-table th,
 .rankings-table td {
-    padding: 6px 8px; /* Reduced padding */
+    padding: 8px 6px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
     white-space: nowrap; /* Prevent text wrapping */
@@ -32,7 +36,10 @@
     background-color: #f7fafc;
     font-weight: 600;
     color: #4a5568;
-    font-size: 0.8rem; /* Smaller header font */
+    font-size: 0.80rem; /* Reduced font size for headers */
+    padding: 8px 6px; /* Slightly reduced padding */
+    white-space: nowrap; /* Prevent wrapping */
+    text-align: left; /* Center align headers */
 }
 
 .rankings-table tr:hover {
@@ -42,45 +49,94 @@
 /* Adjust OWGR column width */
 .rankings-table th:nth-child(1), 
 .rankings-table td:nth-child(1) { 
-    width: 12%; /* Increased from 8% */
-    min-width: 50px; /* Increased from 40px */
+    width: 13%; /* OWGR */
+    min-width: 50px;
 }
 
 /* Slightly reduce other columns to compensate */
 .rankings-table th:nth-child(2), 
 .rankings-table td:nth-child(2) { 
-    width: 23%; /* Reduced from 25% */
-    max-width: 120px;
+    width: 25%; /* Player */
 }
 
 .rankings-table th:nth-child(3), 
 .rankings-table td:nth-child(3) { 
-    width: 11%; /* Reduced from 12% */
-    max-width: 60px;
+    width: 20%; /* Country */
 }
 
 /* Keep Tour and Availability the same */
 .rankings-table th:nth-child(4), 
 .rankings-table td:nth-child(4) { 
-    width: 10%;
-    max-width: 50px;
+    width: 14%; /* Tour */
 }
 
 .rankings-table th:nth-child(5), 
 .rankings-table td:nth-child(5) { 
-    width: 15%;
-    min-width: 70px;
-    text-align: center;
+    width: 19%; /* Availability */
+    text-align: left;
 }
 
 .rankings-table td:last-child {
-    text-align: center;
+    text-align: left;
 }
 
 /* Add horizontal scrolling for very narrow screens */
 .rankings-table-wrapper {
-    overflow-x: auto;
-    width: 100%;
+    max-height: 675px; /* Increased height to show 20 rows (approximately 33.75px per row) */
+    overflow-y: scroll; /* Changed from auto to scroll */
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    transform: rotateY(180deg); /* This flips the wrapper */
+    margin-left: 8px;
+}
+
+/* Create a pseudo-element for the scrollbar area */
+.rankings-table-wrapper::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background-color: #f1f1f1;
+    border-radius: 4px 0 0 4px;
+    z-index: 1;
+}
+
+/* Style the scrollbar */
+.rankings-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+    position: absolute;
+    left: 0;
+}
+
+.rankings-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.rankings-table-wrapper::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.rankings-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Position the scrollbar on the left */
+.rankings-table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #888 transparent;
+}
+
+/* Make the table header sticky */
+.rankings-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #f7fafc;
+    z-index: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Add tooltip for truncated text */
@@ -139,9 +195,15 @@
     background-color: white;
 }
 
-/* Ensure the table wrapper takes remaining space */
-.rankings-table-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    max-height: calc(100% - 120px); /* Adjust based on controls height */
+/* Update or add these styles */
+.rankings-table td {
+    font-size: 0.8rem; /* Reduced font size for data */
+    padding: 8px 6px; /* Slightly reduced padding */
+    text-align: left; /* Center align data */
+}
+
+/* Ensure the table uses these widths */
+.rankings-table {
+    table-layout: fixed;
+    width: 100%;
 }
