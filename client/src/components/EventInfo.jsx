@@ -33,10 +33,13 @@ function EventInfo({ event, course, eventDate, startTime, timeRemaining, isWithi
     };
 
     return (
-        <div className="event-info-container">
+        <div className="event-info">
+            <h3>Event Information</h3>
+            <div className="course-info">
+                {course}
+            </div>
             <div className="event-details">
                 <h2 className="event-name">{event}</h2>
-                <h3>{course}</h3>
             </div>
             <div className="event-timing">
                 <div>Event Date: {formatDate(eventDate)}</div>

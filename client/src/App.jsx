@@ -7,6 +7,7 @@ import Pagination from './components/Pagination';
 import Schedule from './components/Schedule';
 import GolferRankings from './components/GolferRankings';
 import Leaderboard from './components/Leaderboard';
+import Header from './components/Header';
 import './styles.css';
 
 function App() {
@@ -87,8 +88,9 @@ function App() {
     }, []);
 
     return (
+        <div className="app">
+            <Header />
         <div className="app-container">
-            {/* Top section with new components */}
          <div className="top-grid">
          <div className="snapshot-section">
          <Snapshot />
@@ -125,6 +127,7 @@ function App() {
                 </div>
             </div>
         </div>
+    </div>
     );
 }
 

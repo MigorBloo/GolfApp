@@ -34,8 +34,7 @@ function Leaderboard() {
                             <th>Team</th>
                             <th>Earnings</th>
                             <th>Winners</th>
-                            <th>Top 10s</th>
-                            <th>Stinkers</th>
+                            <th>Top 10s</th>  
                         </tr>
                     </thead>
                     <tbody>
@@ -46,7 +45,6 @@ function Leaderboard() {
                                     `$${row['Total Prize Money'].toLocaleString()}` : '-'}</td>
                                 <td>{row.Winners || '-'}</td>
                                 <td>{row.Top10s || '-'}</td>
-                                <td>{row.Stinkers || '-'}</td>
                             </tr>
                         ))}
                     </tbody>

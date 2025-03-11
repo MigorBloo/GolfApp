@@ -1,13 +1,19 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+
 .app-container {
-  padding: 5px;
-  max-width: 98%;
-  margin: 0 auto;
+  padding: 20px;
+  flex: 1;
 }
 
 /* Add new top grid */
 .top-grid {
   display: grid;
-  grid-template-columns: 14fr 43fr 43fr; /* 20% - 40% - 40% distribution */
+  grid-template-columns: 20fr 35fr 45fr; /* 20% - 40% - 40% distribution */
   gap: 10px;
   margin-bottom: 15px;
   width: 100%;

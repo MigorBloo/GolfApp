@@ -48,10 +48,7 @@ function Snapshot() {
                         <td className="snapshot-label">Top 10s</td>
                         <td className="snapshot-value">{snapshotData[0]?.Top10s || '-'}</td>
                     </tr>
-                    <tr>
-                        <td className="snapshot-label">Stinkers</td>
-                        <td className="snapshot-value">{snapshotData[0]?.Stinkers || '-'}</td>
-                    </tr>
+                    
                 </tbody>
             </table>
         </div>
