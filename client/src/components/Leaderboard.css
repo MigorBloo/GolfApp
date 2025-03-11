@@ -1,0 +1,68 @@
+.leaderboard-container {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.leaderboard-container h2 {
+    color: #2d3748;
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.leaderboard-table-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.leaderboard-table th {
+    position: sticky;
+    top: 0;
+    background-color: #f8fafc;
+    padding: 12px 8px;
+    text-align: left;
+    color: #4a5568;
+    font-weight: 600;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.leaderboard-table td {
+    padding: 8px;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3748;
+}
+
+.leaderboard-table tr:last-child td {
+    border-bottom: none;
+}
+
+.leaderboard-table tr:hover {
+    background-color: #f7fafc;
+}
+
+/* Add specific column styling */
+.leaderboard-table td:first-child {
+    font-weight: 600; /* Make rank bold */
+}
+
+.leaderboard-table td:nth-child(2) {
+    text-align: right; /* Align prize money right */
+}
+
+.leaderboard-table td:nth-child(3),
+.leaderboard-table td:nth-child(4),
+.leaderboard-table td:nth-child(5) {
+    text-align: center; /* Center the count columns */
+} 

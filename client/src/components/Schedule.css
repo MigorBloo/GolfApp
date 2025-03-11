@@ -71,15 +71,18 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    color: #333;
     transition: border-color 0.2s ease;
-    box-sizing: border-box;
 }
 
 .selection-input:focus {
     outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.1);
+    border-color: #3182ce;
+    box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.1);
+}
+
+.selection-input:read-only {
+    background-color: #f7fafc;
+    cursor: not-allowed;
 }
 
 .selection-input::placeholder {
@@ -125,14 +128,14 @@
 
 /* Style for both buttons */
 .action-button {
-    padding: 8px 12px;
+    padding: 8px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s ease;
 }
 
 /* Confirm (tick) button */

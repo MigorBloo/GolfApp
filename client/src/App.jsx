@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Snapshot from './components/Snapshot';
+import ScoreTracker from './components/ScoreTracker';
 import GolferTable from './components/GolferTable';
 import Pagination from './components/Pagination';
 import Schedule from './components/Schedule';
@@ -17,7 +19,13 @@ function App() {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOption, setSortOption] = useState('dkSalary');
+    const [selectedGolfer, setSelectedGolfer] = useState(null);
     const golfersPerPage = 10;
+
+    // Add handleGolferSelect function
+    const handleGolferSelect = (golfer) => {
+        setSelectedGolfer(golfer);
+    };
 
     // Add handleSort function
     const handleSort = (option) => {
@@ -80,38 +88,41 @@ function App() {
 
     return (
         <div className="app-container">
-            {loading ? (
-                <div>Loading...</div>
-            ) : error ? (
-                <div>Error: {error.message}</div>
-            ) : (
-                <div className="main-grid">
-                    <div className="rankings-section">
-                        <GolferRankings />
-                    </div>
+            {/* Top section with new components */}
+         <div className="top-grid">
+         <div className="snapshot-section">
+         <Snapshot />
+         </div>
+         <div className="leaderboard-section">
+         <Leaderboard />
+        </div>
+         <div className="score-tracker-section">
+        <ScoreTracker />
+    </div>
+</div>
 
-                    <div className="golfer-table-section">
-                        <GolferTable 
-                            golfers={golfersToDisplay}
-                            eventInfo={eventInfo}
-                            sortOption={sortOption}
-                            onSortChange={handleSort}
-                        />
-                        <Pagination 
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                        />
-                    </div>
-
-                    <div className="schedule-section">
-                        <Schedule />
-                    </div>
+            {/* Existing main grid */}
+            <div className="main-grid">
+                <div className="rankings-section">
+                    <GolferRankings />
                 </div>
-            )}
-
-            <div className="leaderboard-section">
-                <Leaderboard />
+                <div className="golfer-table-section">
+                    <GolferTable 
+                        golfers={golfersToDisplay}
+                        eventInfo={eventInfo}
+                        sortOption={sortOption}
+                        onSortChange={handleSort}
+                        onGolferSelect={handleGolferSelect}
+                    />
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
+                </div>
+                <div className="schedule-section">
+                    <Schedule selectedGolfer={selectedGolfer} />
+                </div>
             </div>
         </div>
     );

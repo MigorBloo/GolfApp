@@ -4,6 +4,31 @@
   margin: 0 auto;
 }
 
+/* Add new top grid */
+.top-grid {
+  display: grid;
+  grid-template-columns: 14fr 43fr 43fr; /* 20% - 40% - 40% distribution */
+  gap: 10px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+/* Style sections in top grid */
+.snapshot-section,
+.score-tracker-section,
+.leaderboard-section {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Grid Layout - 35-40-25 distribution */
 .main-grid {
   display: grid;
@@ -37,68 +62,6 @@
   display: none;
 }
 
-/* Event Header styles */
-.event-header {
-  margin-bottom: 20px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-}
-
-.event-title {
-  text-align: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 15px;
-}
-
-.event-title h1 {
-  color: #2c3e50;
-  font-size: 28px;
-  margin: 0 0 10px 0;
-  font-weight: bold;
-}
-
-.event-title h2 {
-  color: #34495e;
-  font-size: 24px;
-  margin: 0;
-}
-
-.event-details {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  text-align: center;
-}
-
-.event-details h3 {
-  color: #2c3e50;
-  font-size: 18px;
-  margin: 0 0 8px 0;
-  font-weight: 600;
-}
-
-.event-details h4 {
-  color: #7f8c8d;
-  font-size: 16px;
-  margin: 0;
-  font-weight: 500;
-}
-
-.event-details h2 {
-  color: #e74c3c;
-  font-size: 20px;
-  margin: 0;
-  font-weight: bold;
-}
-
-.course-info, .date-info, .time-info, .lock-info {
-  padding: 10px;
-  border-radius: 4px;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
 
 /* Table styles */
 .golfer-table {
@@ -185,73 +148,6 @@
   cursor: not-allowed;
 }
 
-/* Schedule styles */
-.schedule-container {
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.schedule-container h3 {
-  color: #2c3e50;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #eee;
-}
-
-.schedule-list {
-  max-height: 600px;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
-.schedule-item {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  transition: background-color 0.2s ease;
-}
-
-.schedule-item:hover {
-  background-color: #f8f9fa;
-}
-
-.schedule-item h4 {
-  color: #2c3e50;
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.schedule-item .date {
-  color: #2c3e50;
-  font-weight: bold;
-  margin: 4px 0;
-  font-size: 13px;
-}
-
-.schedule-item .course {
-  color: #666;
-  margin: 4px 0;
-  font-size: 13px;
-}
-
-.schedule-item .purse {
-  color: #28a745;
-  font-weight: bold;
-  margin: 4px 0;
-  font-size: 13px;
-}
-
-.schedule-item .selection {
-  color: #666;
-  font-style: italic;
-  margin: 4px 0;
-  font-size: 13px;
-  padding: 4px 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
 
 /* Rankings and Leaderboard styles - Updated for consistency */
 .rankings-container,

@@ -24,13 +24,28 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
         return `${firstName} ${lastName}`;
     };
 
-    // Set event date and start time
+    // Update these constants at the top of your component
     const eventDate = "2025-03-13";
     const startTime = "7:00 AM EST";
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
-            const eventDateTime = new Date(`${eventDate} ${startTime}`);
+            // Parse the event date and time
+            const [year, month, day] = eventDate.split('-');
+            const [timeStr, period] = startTime.split(' ');
+            const [hourStr, minuteStr] = timeStr.split(':');
+            
+            // Create event date object
+            const eventDateTime = new Date(year, month - 1, day);
+            
+            // Set the time
+            let eventHour = parseInt(hourStr);
+            if (period === 'PM' && eventHour !== 12) eventHour += 12;
+            if (period === 'AM' && eventHour === 12) eventHour = 0;
+            
+            eventDateTime.setHours(eventHour, parseInt(minuteStr), 0);
+            
+            // Get current time
             const now = new Date();
             const timeDiff = eventDateTime - now;
 
@@ -40,30 +55,34 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                 return;
             }
 
-            // Calculate total hours remaining
-            const hoursRemaining = Math.floor(timeDiff / (1000 * 60 * 60));
-            setIsWithin24Hours(hoursRemaining <= 24);
+            // Calculate days and hours
+            const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
 
-            if (hoursRemaining > 24) {
-                // If more than 24 hours, show days
-                const days = Math.floor(hoursRemaining / 24);
-                setTimeUntilLock(`${days} ${days === 1 ? 'day' : 'days'}`);
+            // Set within 24 hours flag
+            setIsWithin24Hours(days === 0 && hours < 24);
+
+            // Set the display text with appropriate class
+            const countdownClass = isWithin24Hours ? 'countdown-red' : 'countdown-green';
+            if (days > 0) {
+                setTimeUntilLock(
+                    <span className={countdownClass}>
+                        {`${days} ${days === 1 ? 'day' : 'days'}`}
+                    </span>
+                );
             } else {
-                // If less than 24 hours, show hours, minutes, seconds
-                const hours = hoursRemaining;
-                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                setTimeUntilLock(`${hours}h ${minutes}m ${seconds}s`);
+                setTimeUntilLock(
+                    <span className={countdownClass}>
+                        {`${hours}h ${minutes}m`}
+                    </span>
+                );
             }
         };
 
-        // Update every second when within 24 hours, otherwise update every minute
-        const timer = setInterval(
-            calculateTimeRemaining,
-            isWithin24Hours ? 1000 : 60000
-        );
-        
-        calculateTimeRemaining(); // Initial calculation
+        // Calculate immediately and set up interval
+        calculateTimeRemaining();
+        const timer = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
         return () => clearInterval(timer);
     }, [eventDate, startTime, isWithin24Hours]);
