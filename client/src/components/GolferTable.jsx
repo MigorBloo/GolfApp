@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import './GolferTable.css';
 import ThisWeekTitle from './ThisWeekTitle';
-import '../components/EventInfo.css';
+
 
 function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
     const [selectedGolfer, setSelectedGolfer] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+   
 
     // Format the date
     const formatDate = (dateString) => {
