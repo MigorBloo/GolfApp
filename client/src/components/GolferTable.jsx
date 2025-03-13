@@ -28,55 +28,77 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
 
     // Update these constants at the top of your component
     const eventDate = "2025-03-13";
-    const startTime = "7:00 AM EST";
+    const startTime = "8:40 AM EST";
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
             // Parse the event date and time
             const [year, month, day] = eventDate.split('-');
-            const [timeStr, period] = startTime.split(' ');
+            const [timeStr, period] = startTime.split(' '); // "8:40 AM EST"
             const [hourStr, minuteStr] = timeStr.split(':');
             
-            // Create event date object
-            const eventDateTime = new Date(year, month - 1, day);
+            // Create event date object in EST
+            const eventDateTime = new Date();
+            eventDateTime.setFullYear(parseInt(year));
+            eventDateTime.setMonth(parseInt(month) - 1); // Month is 0-based
+            eventDateTime.setDate(parseInt(day));
             
-            // Set the time
+            // Convert hours to 24-hour format
             let eventHour = parseInt(hourStr);
-            if (period === 'PM' && eventHour !== 12) eventHour += 12;
-            if (period === 'AM' && eventHour === 12) eventHour = 0;
-            
-            eventDateTime.setHours(eventHour, parseInt(minuteStr), 0);
-            
-            // Get current time
+            if (period === 'PM' && eventHour !== 12) {
+                eventHour += 12;
+            } else if (period === 'AM' && eventHour === 12) {
+                eventHour = 0;
+            }
+
+            // Create a new Date object for the current time in EST
             const now = new Date();
-            const timeDiff = eventDateTime - now;
+            const estOffset = -5; // EST is UTC-5
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const estNow = new Date(utc + (3600000 * estOffset));
+
+            // Set event time in EST
+            const eventInEST = new Date(year, month - 1, day, eventHour, parseInt(minuteStr), 0);
+            
+            // Calculate time difference
+            const timeDiff = eventInEST.getTime() - estNow.getTime();
+
+            // Add console logs for debugging
+            console.log('Event time (EST):', eventInEST.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            console.log('Current time (EST):', estNow.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            console.log('Time difference (ms):', timeDiff);
 
             if (timeDiff <= 0) {
                 setTimeUntilLock('Event has started');
                 setIsWithin24Hours(true);
+                setHasStarted(true);
                 return;
             }
 
-            // Calculate days and hours
-            const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            setHasStarted(false);
+
+            // Calculate time components
+            const timeComponents = {
+                days: Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+            };
 
             // Set within 24 hours flag
-            setIsWithin24Hours(days === 0 && hours < 24);
+            setIsWithin24Hours(timeComponents.days === 0 && timeComponents.hours < 24);
 
             // Set the display text with appropriate class
             const countdownClass = isWithin24Hours ? 'countdown-red' : 'countdown-green';
-            if (days > 0) {
+            if (timeComponents.days > 0) {
                 setTimeUntilLock(
                     <span className={countdownClass}>
-                        {`${days} ${days === 1 ? 'day' : 'days'}`}
+                        {`${timeComponents.days} ${timeComponents.days === 1 ? 'day' : 'days'}`}
                     </span>
                 );
             } else {
                 setTimeUntilLock(
                     <span className={countdownClass}>
-                        {`${hours}h ${minutes}m`}
+                        {`${timeComponents.hours}h ${timeComponents.minutes}m`}
                     </span>
                 );
             }
@@ -87,7 +109,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
         const timer = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
         return () => clearInterval(timer);
-    }, [eventDate, startTime, isWithin24Hours]);
+    }, [eventDate, startTime]);
 
     const handleGolferSelection = (golfer) => {
         const playerName = formatPlayerName(golfer.name);

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Schedule.css';
 
-function Schedule({ selectedGolfer }) {
+function Schedule({ selectedGolfer, golfers, rankedGolfers }) {
     const [schedule, setSchedule] = useState([]);
     const [selections, setSelections] = useState({});
     const [tempSelection, setTempSelection] = useState(null);
     const [activeBoxId, setActiveBoxId] = useState(null);
+    const [suggestions, setSuggestions] = useState([]);
+    const [activeSuggestionBox, setActiveSuggestionBox] = useState(null);
 
     // Load schedule data from Excel
     useEffect(() => {
@@ -37,11 +39,61 @@ function Schedule({ selectedGolfer }) {
         }
     }, [selectedGolfer, schedule]);
 
-    const handleInputChange = (tournamentId, value) => {
-        if (!selections[tournamentId]) {
-            setTempSelection(value);
-            setActiveBoxId(tournamentId);
+    useEffect(() => {
+        console.log('Ranked golfers received:', rankedGolfers);
+    }, [rankedGolfers]);
+    
+    // Updated getSuggestions function
+    const getSuggestions = (input, index) => {
+        if (!input) return [];
+        const inputValue = input.toLowerCase();
+
+        // For the first box (index 0), don't show suggestions as it's controlled by GolferTable
+        if (index === 0) return [];
+
+        // Use ranked golfers for autocomplete for all other boxes
+        const golferNames = Array.isArray(rankedGolfers) 
+            ? rankedGolfers.map(golfer => {
+                // Log a sample golfer to see its structure
+                if (!golfer) return null;
+                
+                // Adjust these properties based on your actual data structure
+                const name = golfer.Player || golfer.player || golfer.Name || golfer.name;
+                if (!name) return null;
+
+                // If name is already in "First Last" format
+                if (!name.includes(',')) return name;
+
+                // If name is in "Last, First" format
+                const [lastName, firstName] = name.split(', ');
+                return `${firstName} ${lastName}`;
+            })
+            .filter(Boolean) // Remove null values
+            : [];
+
+        return golferNames
+            .filter(name => name.toLowerCase().includes(inputValue))
+            .slice(0, 5); // Limit to 5 suggestions
+    };
+
+    // Update handleInputChange to pass the index
+    const handleInputChange = (tournamentId, value, index) => {
+        setTempSelection(value);
+        setActiveBoxId(tournamentId);
+
+        // Only show suggestions for boxes after the first one
+        if (index > 0) {
+            const newSuggestions = getSuggestions(value, index);
+            setSuggestions(newSuggestions);
+            setActiveSuggestionBox(tournamentId);
         }
+    };
+
+    const handleSuggestionClick = (suggestion, tournamentId) => {
+        setTempSelection(suggestion);
+        setActiveBoxId(tournamentId);
+        setSuggestions([]);
+        setActiveSuggestionBox(null);
     };
 
     const handleConfirmSelection = (tournamentId) => {
@@ -52,13 +104,22 @@ function Schedule({ selectedGolfer }) {
             }));
             setTempSelection(null);
             setActiveBoxId(null);
+            setSuggestions([]);
+            setActiveSuggestionBox(null);
         }
     };
 
     const handleCancelSelection = () => {
         setTempSelection(null);
         setActiveBoxId(null);
+        setSuggestions([]);
+        setActiveSuggestionBox(null);
     };
+
+    useEffect(() => {
+        console.log('Golfers from table:', golfers);
+        console.log('Ranked golfers:', rankedGolfers);
+    }, [golfers, rankedGolfers]);
 
     if (schedule.length === 0) {
         return <div className="schedule-container">Loading schedule...</div>;
@@ -89,20 +150,34 @@ function Schedule({ selectedGolfer }) {
                             </div>
                         </div>
                         <div className="selection-container">
-                            <input
-                                type="text"
-                                className="selection-input"
-                                placeholder="Enter selection..."
-                                value={
-                                    activeBoxId === tournament.id && index === 0
-                                        ? tempSelection || ''
-                                        : selections[tournament.id] || ''
-                                }
-                                onChange={(e) => handleInputChange(tournament.id, e.target.value)}
-                                readOnly={!!selections[tournament.id]}
-                            />
-                            {activeBoxId === tournament.id && index === 0 && tempSelection && (
-                                <>
+                            <div className="selection-input-wrapper">
+                                <input
+                                    type="text"
+                                    className="selection-input"
+                                    placeholder="Enter selection..."
+                                    value={
+                                        activeBoxId === tournament.id
+                                            ? tempSelection || ''
+                                            : selections[tournament.id] || ''
+                                    }
+                                    onChange={(e) => handleInputChange(tournament.id, e.target.value, index)}
+                                />
+                                {activeSuggestionBox === tournament.id && suggestions.length > 0 && (
+                                    <div className="suggestions-dropdown">
+                                        {suggestions.map((suggestion, i) => (
+                                            <div
+                                                key={i}
+                                                className="suggestion-item"
+                                                onClick={() => handleSuggestionClick(suggestion, tournament.id)}
+                                            >
+                                                {suggestion}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {activeBoxId === tournament.id && (
+                                <div className="action-buttons">
                                     <button 
                                         className="action-button confirm-button"
                                         onClick={() => handleConfirmSelection(tournament.id)}
@@ -121,7 +196,7 @@ function Schedule({ selectedGolfer }) {
                                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                         </svg>
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>

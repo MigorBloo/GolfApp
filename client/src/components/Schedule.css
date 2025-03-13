@@ -66,12 +66,10 @@
 }
 
 .selection-input {
-    width: 75%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
+    width: 150px; /* Reduced from 200px */
+    padding: 8px;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 14px;
-    transition: border-color 0.2s ease;
 }
 
 .selection-input:focus {
@@ -122,36 +120,37 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 10px;
-    width: 100%;
 }
 
-/* Style for both buttons */
+.action-buttons {
+    display: flex;
+    gap: 4px;
+    margin-left: 4px; /* Add some space between input and buttons */
+}
+
 .action-button {
-    padding: 8px;
+    padding: 6px; /* Slightly reduce button size */
     border: none;
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s ease;
 }
 
-/* Confirm (tick) button */
 .confirm-button {
-    background-color: #3182ce;
+    background-color: #4299e1;
     color: white;
 }
 
-.confirm-button:hover {
-    background-color: #2c5282;
-}
-
-/* Cancel (x) button */
 .cancel-button {
     background-color: #e53e3e;
     color: white;
+}
+
+/* Add hover effects */
+.confirm-button:hover {
+    background-color: #3182ce;
 }
 
 .cancel-button:hover {
@@ -167,4 +166,37 @@
 /* You might want to adjust the inner padding of the first box */
 .schedule-list .schedule-item:first-child .tournament-info {
     padding: 10px;
+}
+
+/* Add these new styles to your existing Schedule.css */
+.selection-input-wrapper {
+    position: relative;
+    flex-grow: 1;
+}
+
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 200px; /* Make dropdown slightly wider than input */
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
 }

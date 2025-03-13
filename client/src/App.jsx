@@ -16,11 +16,12 @@ function App() {
         event_name: '',
         course: ''
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOption, setSortOption] = useState('dkSalary');
     const [selectedGolfer, setSelectedGolfer] = useState(null);
+    const [rankedGolfers, setRankedGolfers] = useState([]);
     const golfersPerPage = 10;
 
     // Add handleGolferSelect function
@@ -87,6 +88,36 @@ function App() {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        const fetchRankedGolfers = async () => {
+            console.log('Starting to fetch rankings data...');
+            try {
+                const response = await axios.get('/api/rankings');
+                console.log('Rankings API Response:', response.data);
+                
+                // Extract the rankings array from the response
+                const rankingsData = response.data.rankings; // Add this line
+                
+                if (Array.isArray(rankingsData) && rankingsData.length > 0) {
+                    setRankedGolfers(rankingsData);
+                    console.log('Rankings data set successfully:', rankingsData);
+                } else {
+                    console.error('Rankings data is empty or invalid:', response.data);
+                    setRankingsError('No rankings data available');
+                }
+            } catch (error) {
+                console.error('Error fetching rankings:', error);
+                setRankingsError(error.message);
+            }
+        };
+    
+        fetchRankedGolfers();
+    }, []);
+
+    useEffect(() => {
+        console.log('Current rankedGolfers state:', rankedGolfers);
+    }, [rankedGolfers]);
+
     return (
         <div className="app">
             <Header />
@@ -123,7 +154,10 @@ function App() {
                     />
                 </div>
                 <div className="schedule-section">
-                    <Schedule selectedGolfer={selectedGolfer} />
+                    <Schedule 
+                    selectedGolfer={selectedGolfer}
+                    golfers={golfersToDisplay}
+                    rankedGolfers={rankedGolfers}  />
                 </div>
             </div>
         </div>
