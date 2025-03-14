@@ -200,3 +200,28 @@
 .suggestion-item:hover {
     background-color: #f0f0f0;
 }
+
+.selection-container.locked {
+    opacity: 0.7;
+    background-color: #f5f5f5;
+    pointer-events: none;
+}
+
+.selection-container.locked .selection-input {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+}
+
+.selection-input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* Add a visual indicator for locked state */
+.selection-container.locked::after {
+    content: '🔒';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}

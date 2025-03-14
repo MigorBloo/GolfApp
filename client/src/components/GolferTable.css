@@ -187,3 +187,12 @@
     padding: 15px; /* Add some space between the border and content */
     box-shadow: 0 0 5px rgba(66, 153, 225, 0.2); /* Optional: subtle blue shadow */
 }
+
+.golfer-table-container.locked {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.golfer-table.locked {
+    background-color: #f5f5f5;
+}

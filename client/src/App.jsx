@@ -22,14 +22,15 @@ function App() {
     const [sortOption, setSortOption] = useState('dkSalary');
     const [selectedGolfer, setSelectedGolfer] = useState(null);
     const [rankedGolfers, setRankedGolfers] = useState([]);
+    const [isEventLocked, setIsEventLocked] = useState(false);
+    const [rankingsError, setRankingsError] = useState(null);
+    const [scoreTrackerData, setScoreTrackerData] = useState([]);
     const golfersPerPage = 10;
 
-    // Add handleGolferSelect function
     const handleGolferSelect = (golfer) => {
         setSelectedGolfer(golfer);
     };
 
-    // Add handleSort function
     const handleSort = (option) => {
         setSortOption(option);
         const sortedGolfers = [...golfers].sort((a, b) => 
@@ -38,7 +39,34 @@ function App() {
         setGolfers(sortedGolfers);
     };
 
-    // Add handlePageChange function
+    const fetchScoreTrackerData = async () => {
+        try {
+            const response = await axios.get('/api/scoretracker/entries');
+            setScoreTrackerData(response.data);
+        } catch (error) {
+            console.error('Error fetching score tracker data:', error);
+        }
+    };
+
+    const handleEventLockStatus = (locked) => {
+        setIsEventLocked(locked);
+        if (locked && selectedGolfer) {
+            updateScoreTracker(selectedGolfer);
+        }
+    };
+
+    const updateScoreTracker = async (golferName) => {
+        try {
+            await axios.post('/api/scoretracker/update', {
+                golfer: golferName,
+                tournament: 1 // or however you identify the current tournament
+            });
+            fetchScoreTrackerData();
+        } catch (error) {
+            console.error('Error updating ScoreTracker:', error);
+        }
+    };
+
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
@@ -51,13 +79,11 @@ function App() {
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
-                console.log('Starting axios request...'); // Debug log
-                
-                // Change this line to use the relative URL
+                console.log('Starting axios request...');
                 const response = await axios.get('/api/golfers');
-                
-                console.log('Response received:', response.data); // Debug log
+                console.log('Response received:', response.data);
     
                 const data = response.data;
     
@@ -77,15 +103,16 @@ function App() {
                     formattedGolfers.sort((a, b) => b.dkSalary - a.dkSalary);
                     setGolfers(formattedGolfers);
                 }
-                setLoading(false);
             } catch (error) {
                 console.error('Error details:', error);
                 setError(error);
+            } finally {
                 setLoading(false);
             }
         };
     
         fetchData();
+        fetchScoreTrackerData(); // Fetch score tracker data initially
     }, []);
 
     useEffect(() => {
@@ -95,8 +122,7 @@ function App() {
                 const response = await axios.get('/api/rankings');
                 console.log('Rankings API Response:', response.data);
                 
-                // Extract the rankings array from the response
-                const rankingsData = response.data.rankings; // Add this line
+                const rankingsData = response.data.rankings;
                 
                 if (Array.isArray(rankingsData) && rankingsData.length > 0) {
                     setRankedGolfers(rankingsData);
@@ -121,47 +147,51 @@ function App() {
     return (
         <div className="app">
             <Header />
-        <div className="app-container">
-         <div className="top-grid">
-         <div className="snapshot-section">
-         <Snapshot />
-         </div>
-         <div className="leaderboard-section">
-         <Leaderboard />
-        </div>
-         <div className="score-tracker-section">
-        <ScoreTracker />
-    </div>
-</div>
+            <div className="app-container">
+                <div className="top-grid">
+                    <div className="snapshot-section">
+                        <Snapshot />
+                    </div>
+                    <div className="leaderboard-section">
+                        <Leaderboard />
+                    </div>
+                    <div className="score-tracker-section">
+                        <ScoreTracker data={scoreTrackerData} />
+                    </div>
+                </div>
 
-            {/* Existing main grid */}
-            <div className="main-grid">
-                <div className="rankings-section">
-                    <GolferRankings />
-                </div>
-                <div className="golfer-table-section">
-                    <GolferTable 
-                        golfers={golfersToDisplay}
-                        eventInfo={eventInfo}
-                        sortOption={sortOption}
-                        onSortChange={handleSort}
-                        onGolferSelect={handleGolferSelect}
-                    />
-                    <Pagination 
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
-                </div>
-                <div className="schedule-section">
-                    <Schedule 
-                    selectedGolfer={selectedGolfer}
-                    golfers={golfersToDisplay}
-                    rankedGolfers={rankedGolfers}  />
+                <div className="main-grid">
+                    <div className="rankings-section">
+                        <GolferRankings />
+                    </div>
+                    <div className="golfer-table-section">
+                        <GolferTable 
+                            golfers={golfersToDisplay}
+                            eventInfo={eventInfo}
+                            sortOption={sortOption}
+                            onSortChange={handleSort}
+                            onGolferSelect={handleGolferSelect}
+                            onEventLockChange={handleEventLockStatus}
+                            isLocked={isEventLocked}
+                        />
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            isLocked={isEventLocked}
+                        />
+                    </div>
+                    <div className="schedule-section">
+                        <Schedule 
+                            selectedGolfer={selectedGolfer}
+                            golfers={golfersToDisplay}
+                            rankedGolfers={rankedGolfers}
+                            isLocked={isEventLocked}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     );
 }
 

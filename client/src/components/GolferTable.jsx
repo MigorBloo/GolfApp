@@ -3,7 +3,7 @@ import './GolferTable.css';
 import ThisWeekTitle from './ThisWeekTitle';
 
 
-function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect }) {
+function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect, onEventLockChange, isLocked }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
@@ -27,8 +27,8 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
     };
 
     // Update these constants at the top of your component
-    const eventDate = "2025-03-13";
-    const startTime = "8:40 AM EST";
+    const eventDate = "2025-03-14";
+    const startTime = "11:40 AM EST";
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
@@ -72,10 +72,12 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                 setTimeUntilLock('Event has started');
                 setIsWithin24Hours(true);
                 setHasStarted(true);
+                onEventLockChange(true); // Notify parent component
                 return;
             }
 
             setHasStarted(false);
+            onEventLockChange(false);
 
             // Calculate time components
             const timeComponents = {
@@ -109,7 +111,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
         const timer = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
         return () => clearInterval(timer);
-    }, [eventDate, startTime]);
+    }, [eventDate, startTime,onEventLockChange]);
 
     const handleGolferSelection = (golfer) => {
         const playerName = formatPlayerName(golfer.name);
@@ -127,7 +129,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
     );
 
     return (
-        <div className="golfer-table-container">
+        <div className={`golfer-table-container ${isLocked ? 'locked' : ''}`}>
             <ThisWeekTitle />
             <div className="event-header">
                 <h2 className="event-name">{eventInfo.event_name}</h2>
@@ -179,7 +181,7 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
             </div>
 
             {/* Golfers Table */}
-            <table className="golfer-table">
+            <table className={`golfer-table ${isLocked ? 'locked' : ''}`}>
                 <thead>
                     <tr>
                         <th style={{ fontSize: '0.75rem', padding: '5px 3px' }}>Player</th>
