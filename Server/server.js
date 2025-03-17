@@ -139,8 +139,10 @@ app.get('/api/schedule', async (req, res) => {
 
 app.get('/api/selections', async (req, res) => {
     try {
-        const selections = await getSelections();
-        res.json(selections);
+        console.log('Fetching selections...');
+        const result = await pool.query('SELECT * FROM tournament_selections ORDER BY id');
+        console.log('Tournament selections:', result.rows);
+        res.json(result.rows);
     } catch (error) {
         console.error('Error fetching selections:', error);
         res.status(500).json({ error: 'Failed to fetch selections' });
@@ -149,7 +151,9 @@ app.get('/api/selections', async (req, res) => {
 
 app.get('/api/scoretracker/entries', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM score_tracker ORDER BY tournament_id');
+        console.log('Fetching score tracker entries...');
+        const result = await pool.query('SELECT * FROM score_tracker ORDER BY id');
+        console.log('Score tracker entries:', result.rows);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching score tracker entries:', error);
@@ -187,21 +191,25 @@ app.get('/api/test-insert', async (req, res) => {
     }
 });
 
+// Save selection
 app.post('/api/selections/save', async (req, res) => {
     try {
-        const { tournamentId, playerName, isLocked } = req.body;
-        console.log('Save endpoint received:', { tournamentId, playerName, isLocked });
-        
-        // Log the current database connection
-        const dbCheck = await pool.query('SELECT current_database(), current_schema()');
-        console.log('Using database/schema:', dbCheck.rows[0]);
-        
-        const result = await saveSelection(tournamentId, playerName, isLocked);
+        const { event, playerName, isLocked } = req.body;
+        console.log('Save endpoint received:', { event, playerName, isLocked });
+
+        const result = await saveSelection(event, playerName, isLocked);
         console.log('Save result:', result);
-        
+
+        // Fetch updated score_tracker entry
+        const scoreTrackerEntry = await pool.query(
+            'SELECT * FROM score_tracker WHERE event = $1',
+            [event]
+        );
+        console.log('Updated score_tracker entry:', scoreTrackerEntry.rows[0]);
+
         res.json(result);
     } catch (error) {
-        console.error('Error in save endpoint:', error);
+        console.error('Error saving selection:', error);
         res.status(500).json({ error: 'Failed to save selection' });
     }
 });

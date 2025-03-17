@@ -28,7 +28,7 @@ console.log('Database configuration (excluding password):', {
     password: '****'
 });
 
-const pool = new Pool(dbConfig);
+export const pool = new Pool(dbConfig);
 
 // Add connection error handler
 pool.on('error', (err) => {

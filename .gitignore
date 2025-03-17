@@ -1,3 +1,4 @@
+# .gitignore
 # Dependencies
 node_modules/
 /client/node_modules/
@@ -36,3 +37,6 @@ yarn-error.log*
 
 # Backup
 /backup/ 
+
+# Excel files (if you want to exclude them)
+*.xlsx

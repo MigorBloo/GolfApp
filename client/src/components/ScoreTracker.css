@@ -1,63 +1,80 @@
 .score-tracker-container {
-    background-color: white;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     padding: 15px;
+    background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .score-tracker-container h2 {
     color: #2d3748;
-    font-size: 1.25rem;
-    margin-bottom: 15px;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
     padding-bottom: 8px;
     border-bottom: 2px solid #edf2f7;
 }
 
-.score-tracker-table-wrapper {
-    flex-grow: 1;
+.score-tracker-table-container {
+    height: 200px; /* Adjusted to show approximately 5 rows */
     overflow-y: auto;
-    max-height: 300px;
-    direction: rtl;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 .score-tracker-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
-    direction: ltr;
+    font-size: 0.85rem;
 }
 
-.score-tracker-table th {
+.score-tracker-table thead {
     position: sticky;
     top: 0;
-    background-color: #f8fafc;
-    padding: 12px 8px;
-    text-align: left;
-    color: #4a5568;
-    font-weight: 600;
-    border-bottom: 2px solid #edf2f7;
+    background-color: #f8f9fa;
     z-index: 1;
 }
 
+.score-tracker-table th {
+    padding: 10px 8px; /* Slightly increased header height */
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
 .score-tracker-table td {
-    padding: 12px 8px;
-    border-bottom: 1px solid #edf2f7;
-    color: #2d3748;
+    padding: 12px 8px; /* Increased row height */
+    border-bottom: 1px solid #dee2e6;
+    line-height: 1.2; /* Added to increase text height */
 }
 
-.score-tracker-table tr {
-    height: 48px;
+.score-tracker-table tbody tr {
+    height: 40px; /* Fixed height for each row */
 }
 
-.score-tracker-table tr:last-child td {
-    border-bottom: none;
+.score-tracker-table tbody tr:hover {
+    background-color: #f5f5f5;
 }
 
-.score-tracker-table tr:hover {
-    background-color: #f7fafc;
+/* Scrollbar styling */
+.score-tracker-table-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.score-tracker-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.score-tracker-table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.score-tracker-table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 /* Webkit scrollbar styling (Chrome, Safari, Edge) */

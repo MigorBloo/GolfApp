@@ -1,4 +1,7 @@
-import pool from '../config/db.js';
+import pkg from 'pg';
+const { Pool } = pkg;
+import { pool } from '../config/db.js';
+
 
 export const initializeDatabase = async () => {
     const client = await pool.connect();
@@ -38,43 +41,45 @@ export const initializeDatabase = async () => {
     }
 };
 
-export const saveSelection = async (tournamentId, playerName, isLocked) => {
+export const saveSelection = async (event, playerName, isLocked) => {
     const client = await pool.connect();
     try {
-        console.log('Starting database transaction...', { tournamentId, playerName, isLocked });
         await client.query('BEGIN');
 
-        // Ensure isLocked is always a boolean
-        const isLockedBoolean = isLocked === true;
+        console.log('Saving selection with lock status:', { event, playerName, isLocked });
 
-        const query = `
-            INSERT INTO tournament_selections 
-                (tournament_id, player_name, is_locked)
-            VALUES 
-                ($1, $2, $3)
-            ON CONFLICT (tournament_id) 
-            DO UPDATE SET 
-                player_name = EXCLUDED.player_name,
-                is_locked = EXCLUDED.is_locked,
-                selection_date = CURRENT_TIMESTAMP
-            RETURNING *;
-        `;
+        // Save to tournament_selections
+        const tournamentResult = await client.query(`
+            INSERT INTO tournament_selections (event, player_name, selection_date, is_locked)
+            VALUES ($1, $2, NOW(), $3)
+            ON CONFLICT (event) DO UPDATE
+            SET player_name = $2, selection_date = NOW(), is_locked = $3
+            RETURNING *
+        `, [event, playerName, isLocked]);
 
-        console.log('Executing query with values:', { 
-            tournamentId, 
-            playerName, 
-            isLocked: isLockedBoolean 
-        });
-
-        const result = await client.query(query, [
-            tournamentId, 
-            playerName, 
-            isLockedBoolean
-        ]);
+        // If locked, update score_tracker
+        if (isLocked) {
+            console.log('Updating score_tracker for locked selection');
+            await client.query(`
+                UPDATE score_tracker
+                SET selection = $1
+                WHERE event = $2
+            `, [playerName, event]);
+        }
 
         await client.query('COMMIT');
-        console.log('Transaction committed successfully');
-        return result.rows[0];
+        
+        // Log final state
+        const finalState = await client.query(`
+            SELECT ts.*, st.selection 
+            FROM tournament_selections ts
+            LEFT JOIN score_tracker st ON ts.event = st.event
+            WHERE ts.event = $1
+        `, [event]);
+        
+        console.log('Final state after save:', finalState.rows[0]);
+        
+        return tournamentResult.rows[0];
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error in saveSelection:', error);
@@ -86,7 +91,7 @@ export const saveSelection = async (tournamentId, playerName, isLocked) => {
 
 export const getSelections = async () => {
     try {
-        const result = await pool.query('SELECT * FROM tournament_selections ORDER BY tournament_id');
+        const result = await pool.query('SELECT * FROM tournament_selections ORDER BY id');
         return result.rows;
     } catch (error) {
         throw error;
@@ -95,7 +100,7 @@ export const getSelections = async () => {
 
 export const getScoreTrackerEntries = async () => {
     try {
-        const result = await pool.query('SELECT * FROM score_tracker ORDER BY tournament_id');
+        const result = await pool.query('SELECT * FROM score_tracker ORDER BY id');
         return result.rows;
     } catch (error) {
         throw error;
