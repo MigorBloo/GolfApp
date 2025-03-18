@@ -4,6 +4,7 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
+    position: relative; /* Add this for error message positioning */
 }
 
 /* Reduce top padding for the heading */
@@ -87,10 +88,35 @@
     color: #999;
 }
 
+/* Update error message styles */
 .error-message {
-    color: #e53e3e;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    color: #dc2626;  /* Darker red for better contrast */
+    padding: 16px 32px;  /* Larger padding */
+    border-radius: 6px;  /* Slightly larger border radius */
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);  /* Colored shadow with larger spread */
+    z-index: 1000;
+    font-size: 1rem;  /* Slightly larger font */
+    font-weight: 500;  /* Semi-bold text */
+    border: 2px solid #dc2626;  /* Thicker border */
+    animation: slideDown 0.3s ease-out;
+    min-width: 300px;  /* Ensure minimum width */
     text-align: center;
-    padding: 20px;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
 }
 
 /* Update the grid container to show 5 boxes */
@@ -224,4 +250,9 @@
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
+}
+
+/* Error styles */
+.selection-input.error {
+    border-color: #e53e3e;
 }

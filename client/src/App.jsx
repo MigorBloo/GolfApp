@@ -162,7 +162,7 @@ function App() {
 
                 <div className="main-grid">
                     <div className="rankings-section">
-                        <GolferRankings />
+                        <GolferRankings usedGolfers={scoreTrackerData.map(entry => entry.selection)} />
                     </div>
                     <div className="golfer-table-section">
                         <GolferTable 
@@ -173,6 +173,7 @@ function App() {
                             onGolferSelect={handleGolferSelect}
                             onEventLockChange={handleEventLockStatus}
                             isLocked={isEventLocked}
+                            usedGolfers={scoreTrackerData.map(entry => entry.selection)}
                         />
                         <Pagination 
                             currentPage={currentPage}
@@ -187,6 +188,7 @@ function App() {
                             golfers={golfersToDisplay}
                             rankedGolfers={rankedGolfers}
                             isLocked={isEventLocked}
+                            usedGolfers={scoreTrackerData.map(entry => entry.selection)}
                         />
                     </div>
                 </div>

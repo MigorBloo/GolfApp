@@ -196,3 +196,18 @@
 .golfer-table.locked {
     background-color: #f5f5f5;
 }
+
+/* Style for used golfers */
+.golfer-table tr.used-golfer {
+    color: #999;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.golfer-table tr.used-golfer td {
+    color: #999;
+}
+
+.golfer-table tr.used-golfer input[type="checkbox"] {
+    opacity: 0.5;
+}

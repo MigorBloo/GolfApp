@@ -207,3 +207,13 @@
     table-layout: fixed;
     width: 100%;
 }
+
+/* Style for used golfers */
+.rankings-table tr.used-golfer {
+    color: #999; /* Grey out the text */
+    opacity: 0.8; /* Slightly reduce opacity */
+}
+
+.rankings-table tr.used-golfer td {
+    color: #999; /* Ensure the text color is applied to all cells */
+}

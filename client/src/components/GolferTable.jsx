@@ -3,7 +3,7 @@ import './GolferTable.css';
 import ThisWeekTitle from './ThisWeekTitle';
 
 
-function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect, onEventLockChange, isLocked }) {
+function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSelect, onEventLockChange, isLocked, usedGolfers = [] }) {
     const [timeUntilLock, setTimeUntilLock] = useState('');
     const [isWithin24Hours, setIsWithin24Hours] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
@@ -115,6 +115,11 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
 
     const handleGolferSelection = (golfer) => {
         const playerName = formatPlayerName(golfer.name);
+        // Don't allow selection if golfer is already used
+        if (usedGolfers.some(usedGolfer => usedGolfer && playerName.toLowerCase() === usedGolfer.toLowerCase())) {
+            return;
+        }
+        
         if (selectedGolfer === playerName) {
             setSelectedGolfer(null);
             onGolferSelect(null);
@@ -195,12 +200,16 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                     {filteredGolfers.map((golfer, index) => {
                         const golferName = formatPlayerName(golfer.name);
                         const isSelected = selectedGolfer === golferName;
+                        const isUsed = usedGolfers.some(usedGolfer => 
+                            usedGolfer && golferName.toLowerCase() === usedGolfer.toLowerCase()
+                        );
                         
                         return (
                             <tr 
                                 key={index}
-                                className={isSelected ? 'selected-row' : ''}
-                                onClick={() => handleGolferSelection(golfer)}
+                                className={`${isSelected ? 'selected-row' : ''} ${isUsed ? 'used-golfer' : ''}`}
+                                onClick={() => !isUsed && handleGolferSelection(golfer)}
+                                style={{ cursor: isUsed ? 'not-allowed' : 'pointer' }}
                             >
                                 <td title={golferName}>{golferName}</td>
                                 <td title={golfer.country}>{golfer.country}</td>
@@ -212,7 +221,8 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
-                                        onChange={() => handleGolferSelection(golfer)}
+                                        onChange={() => !isUsed && handleGolferSelection(golfer)}
+                                        disabled={isUsed}
                                     />
                                 </td>
                             </tr>

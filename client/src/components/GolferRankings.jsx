@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './GolferRankings.css';
 
-function GolferRankings() {
+function GolferRankings({ usedGolfers = [] }) {
     const [rankings, setRankings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -30,8 +30,23 @@ function GolferRankings() {
         fetchRankings();
     }, []);
 
+    // Check if a player is in the usedGolfers array
+    const isPlayerUsed = (playerName) => {
+        return usedGolfers.some(usedGolfer => 
+            usedGolfer && playerName && 
+            usedGolfer.toLowerCase() === playerName.toLowerCase()
+        );
+    };
+
     // Format availability as percentage
-    const formatAvailability = (value) => {
+    const formatAvailability = (player) => {
+        // If player is in usedGolfers array, return 0%
+        if (isPlayerUsed(player.Player)) {
+            return '0%';
+        }
+        
+        // Otherwise use the original formatting logic
+        const value = player.Availability;
         if (typeof value === 'number' && value <= 1) {
             return `${Math.round(value * 100)}%`;
         } else if (typeof value === 'number') {
@@ -120,17 +135,20 @@ function GolferRankings() {
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedRankings.map((player, index) => (
-                            <tr key={index}>
-                                <td title={player.OWGR}>{player.OWGR}</td>
-                                <td title={player.Player}>{player.Player}</td>
-                                <td title={player.Country}>{player.Country}</td>
-                                <td title={player.Tour}>{player.Tour}</td>
-                                <td title={formatAvailability(player.Availability)}>
-                                    {formatAvailability(player.Availability)}
-                                </td>
-                            </tr>
-                        ))}
+                        {sortedRankings.map((player, index) => {
+                            const isUsed = isPlayerUsed(player.Player);
+                            return (
+                                <tr key={index} className={isUsed ? 'used-golfer' : ''}>
+                                    <td title={player.OWGR}>{player.OWGR}</td>
+                                    <td title={player.Player}>{player.Player}</td>
+                                    <td title={player.Country}>{player.Country}</td>
+                                    <td title={player.Tour}>{player.Tour}</td>
+                                    <td title={formatAvailability(player)}>
+                                        {formatAvailability(player)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

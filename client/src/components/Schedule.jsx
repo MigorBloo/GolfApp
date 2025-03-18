@@ -11,7 +11,7 @@ const getNextThursdayDate = () => {
     return thursday;
 };
 
-function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
+function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfers = [] }) {
     const [schedule, setSchedule] = useState([]);
     const [selections, setSelections] = useState({});
     const [tempSelection, setTempSelection] = useState(null);
@@ -20,6 +20,7 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
     const [activeSuggestionBox, setActiveSuggestionBox] = useState(null);
     const [activeSchedule, setActiveSchedule] = useState([]);
     const [nextTournamentDate, setNextTournamentDate] = useState(getNextThursdayDate());
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Load schedule data from Excel
     useEffect(() => {
@@ -56,6 +57,13 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
         }
     }, [selectedGolfer, activeSchedule]);
 
+    const isGolferUsed = (golferName) => {
+        return usedGolfers.some(usedGolfer => 
+            usedGolfer && golferName && 
+            usedGolfer.toLowerCase() === golferName.toLowerCase()
+        );
+    };
+
     const getSuggestions = (input, index) => {
         if (!input) return [];
         const inputValue = input.toLowerCase();
@@ -79,6 +87,7 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
                 return `${firstName} ${lastName}`;
             })
             .filter(Boolean) // Remove null values
+            .filter(name => !isGolferUsed(name)) // Filter out used golfers from suggestions
             : [];
     
         return golferNames
@@ -111,6 +120,12 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
             const isFirstTournament = index === 0;
             const eventName = tournament.Event || tournament.event;
             
+            // Check if golfer is already used
+            if (isGolferUsed(tempSelection)) {
+                setErrorMessage('This Golfer has already been used in a previous tournament. Please select a different one.');
+                return;
+            }
+
             console.log('Confirming selection:', {
                 event: eventName,
                 playerName: tempSelection,
@@ -139,9 +154,10 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
             setActiveBoxId(null);
             setSuggestions([]);
             setActiveSuggestionBox(null);
+            setErrorMessage('');
         } catch (error) {
             console.error('Error saving selection:', error);
-            alert('Failed to save selection');
+            setErrorMessage('Failed to save selection');
         }
     };
 
@@ -150,6 +166,7 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
         setActiveBoxId(null);
         setSuggestions([]);
         setActiveSuggestionBox(null);
+        setErrorMessage('');
     };
 
     const renderSelectionInput = (tournament, index) => {
@@ -160,22 +177,12 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
             ? tempSelection || ''
             : selections[eventName] || '';
     
-        console.log('Rendering selection input:', {
-            tournament: eventName,
-            index,
-            isFirstTournament,
-            isDisabled,
-            currentValue,
-            activeBoxId: activeBoxId,
-            tournamentId: tournament.id
-        });
-
         return (
             <div className={`selection-container ${isLocked && index === 0 ? 'locked' : ''}`}>
                 <div className="selection-input-wrapper">
                     <input
                         type="text"
-                        className="selection-input"
+                        className={`selection-input ${errorMessage && activeBoxId === tournament.id ? 'error' : ''}`}
                         placeholder={isDisabled ? "Locked" : "Enter selection..."}
                         value={currentValue}
                         onChange={(e) => handleInputChange(tournament.id, e.target.value, index)}
@@ -196,26 +203,33 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked }) {
                     )}
                 </div>
                 {activeBoxId === tournament.id && (
-                    <div className="action-buttons">
-                        <button 
-                            className="action-button confirm-button"
-                            onClick={() => handleConfirmSelection(tournament, index)}
-                            title="Confirm selection"
-                        >
-                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                            </svg>
-                        </button>
-                        <button 
-                            className="action-button cancel-button"
-                            onClick={handleCancelSelection}
-                            title="Cancel selection"
-                        >
-                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
+                    <>
+                        <div className="action-buttons">
+                            <button 
+                                className="action-button confirm-button"
+                                onClick={() => handleConfirmSelection(tournament, index)}
+                                title="Confirm selection"
+                            >
+                                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                </svg>
+                            </button>
+                            <button 
+                                className="action-button cancel-button"
+                                onClick={handleCancelSelection}
+                                title="Cancel selection"
+                            >
+                                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        {errorMessage && (
+                            <div className="error-message">
+                                {errorMessage}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         );

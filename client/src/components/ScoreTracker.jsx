@@ -6,6 +6,7 @@ const ScoreTracker = () => {
     const [scoreData, setScoreData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [totalEarnings, setTotalEarnings] = useState(0);
 
     useEffect(() => {
         const fetchScoreData = async () => {
@@ -40,6 +41,14 @@ const ScoreTracker = () => {
 
                 console.log('Final updated score data:', updatedScoreData);
                 setScoreData(updatedScoreData);
+                
+                // Calculate total earnings
+                const total = updatedScoreData.reduce((sum, entry) => {
+                    const earnings = entry.earnings ? parseFloat(entry.earnings.replace(/[^0-9.-]+/g, '')) : 0;
+                    return sum + earnings;
+                }, 0);
+                setTotalEarnings(total);
+                
                 setError(null);
             } catch (err) {
                 console.error('Error loading score tracker data:', err);
@@ -77,10 +86,23 @@ const ScoreTracker = () => {
                                 <td>{entry.event}</td>
                                 <td>{entry.selection || '-'}</td>
                                 <td>{entry.result || '-'}</td>
-                                <td>{entry.earnings || '-'}</td>
+                                <td>{entry.earnings ? `$${entry.earnings.toLocaleString()}` : '-'}</td>
                                 <td>{entry.winner ? '✓' : '-'}</td>
                             </tr>
                         ))}
+                    </tbody>
+                </table>
+            </div>
+            <div className="total-earnings-row">
+                <table className="score-tracker-table">
+                    <tbody>
+                        <tr>
+                            <td>Total Earnings</td>
+                            <td></td>
+                            <td></td>
+                            <td>${totalEarnings.toLocaleString()}</td>
+                            <td></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
