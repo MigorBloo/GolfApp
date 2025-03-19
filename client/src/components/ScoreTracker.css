@@ -3,31 +3,31 @@
     max-width: 800px;
     margin: 0 auto;
     padding: 15px;
-    background: white;
+    background-color: #f8f9fa;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
 }
 
 .score-tracker-container h2 {
-    color: #2d3748;
+    margin-bottom: 15px;
+    color: #333;
     font-size: 1.2rem;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #edf2f7;
 }
 
 .score-tracker-table-container {
-    height: calc(200px - 45px); /* Reduced height to accommodate total row */
+    height: 300px;
     overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px 4px 0 0; /* Remove bottom radius */
-    margin-bottom: 0; /* Remove any bottom margin */
+    overflow-x: auto;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
 }
 
 .score-tracker-table {
     width: 100%;
     border-collapse: collapse;
+    background-color: white;
     font-size: 0.85rem;
 }
 
@@ -38,36 +38,68 @@
     z-index: 1;
 }
 
-.score-tracker-table th {
-    padding: 10px 8px; /* Slightly increased header height */
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    text-align: left;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
+.score-tracker-table th,
 .score-tracker-table td {
-    padding: 12px 8px; /* Increased row height */
-    border-bottom: 1px solid #dee2e6;
-    line-height: 1.2; /* Added to increase text height */
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    line-height: 1.2;
 }
 
-.score-tracker-table tbody tr {
-    height: 40px; /* Fixed height for each row */
+.score-tracker-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
 }
 
-.score-tracker-table tbody tr:hover {
-    background-color: #f5f5f5;
+.score-tracker-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.total-earnings-row {
+    margin-top: 15px;
+    border-top: 2px solid #dee2e6;
+}
+
+.total-earnings-row table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.total-earnings-row td {
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.total-earnings-row td:first-child {
+    text-align: left;
+}
+
+.total-earnings-row td:last-child {
+    text-align: right;
+}
+
+.positive-earnings {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.negative-earnings {
+    color: #dc3545;
+    font-weight: 500;
 }
 
 /* Scrollbar styling */
 .score-tracker-table-container::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .score-tracker-table-container::-webkit-scrollbar-track {
     background: #f1f1f1;
+    border-radius: 4px;
 }
 
 .score-tracker-table-container::-webkit-scrollbar-thumb {

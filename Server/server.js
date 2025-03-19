@@ -7,8 +7,9 @@ import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import pool from './config/db.js';
+import { Pool } from 'pg';
 import { initializeDatabase, saveSelection, getSelections, getScoreTrackerEntries } from './services/database.js';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -214,6 +215,42 @@ app.post('/api/selections/save', async (req, res) => {
     }
 });
 
+// Add tournament earnings endpoint
+app.get('/api/tournament-earnings/:tournId/:year', async (req, res) => {
+    try {
+        const { tournId, year } = req.params;
+        const response = await axios.get(`https://live-golf-data.p.rapidapi.com/earnings`, {
+            params: {
+                tournId,
+                year
+            },
+            headers: {
+                'x-rapidapi-host': 'live-golf-data.p.rapidapi.com',
+                'x-rapidapi-key': 'abb8d57a72mshdc51e35db403e8bp115f1ejsn04c19819e20b'
+            }
+        });
+
+        console.log('Raw API response:', response.data);
+
+        // Transform the data to make it easier to work with
+        const earningsData = response.data.leaderboard.map(player => {
+            const name = `${player.firstName} ${player.lastName}`;
+            console.log('Transformed player name:', name);
+            console.log('Raw earnings:', player.earnings);
+            return {
+                name,
+                earnings: player.earnings.$numberInt || player.earnings // Handle both formats
+            };
+        });
+
+        console.log('Transformed earnings data:', earningsData);
+        res.json(earningsData);
+    } catch (error) {
+        console.error('Error fetching tournament earnings:', error);
+        res.status(500).json({ error: 'Failed to fetch tournament earnings' });
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error occurred:', err);
@@ -283,4 +320,52 @@ startServer().catch(error => {
     console.error('Failed to start server:', error);
     process.exit(1);
 });
+
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    // Add connection pool settings
+    max: 20, // maximum number of clients in the pool
+    idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
+    connectionTimeoutMillis: 2000, // how long to wait for a connection
+    maxRetries: 3, // number of retries for connection
+    retryDelay: 1000, // delay between retries in milliseconds
+});
+
+// Test database connection
+const testConnection = async () => {
+    try {
+        const client = await pool.connect();
+        console.log('Database connection successful');
+        client.release();
+        return true;
+    } catch (err) {
+        console.error('Database connection failed:', err);
+        return false;
+    }
+};
+
+// Initialize database connection
+const initializeDatabase = async () => {
+    let retries = 3;
+    while (retries > 0) {
+        if (await testConnection()) {
+            break;
+        }
+        retries--;
+        if (retries > 0) {
+            console.log(`Retrying database connection... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+    }
+};
+
+// Call initialization
+initializeDatabase();
 
