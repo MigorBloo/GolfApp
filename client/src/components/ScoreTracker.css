@@ -16,7 +16,7 @@
 }
 
 .score-tracker-table-container {
-    height: 300px;
+    height: 220px;
     overflow-y: auto;
     overflow-x: auto;
     margin-bottom: 15px;
@@ -28,7 +28,7 @@
     width: 100%;
     border-collapse: collapse;
     background-color: white;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 .score-tracker-table thead {
@@ -40,10 +40,10 @@
 
 .score-tracker-table th,
 .score-tracker-table td {
-    padding: 8px 12px;
+    padding: 12px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
-    line-height: 1.2;
+    line-height: 1.4;
 }
 
 .score-tracker-table th {
@@ -174,4 +174,10 @@
 .total-label,
 .total-amount {
     display: none;
+}
+
+.score-tracker-table td:first-child {
+    font-weight: 700;  /* Bolder than the default */
+    color: #2d3748;    /* Darker color for better contrast */
+    font-size: 0.85rem; /* Slightly larger than other cells */
 }

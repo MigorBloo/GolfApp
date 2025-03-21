@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 import { initializeDatabase, saveSelection, getSelections, getScoreTrackerEntries } from './services/database.js';
 import axios from 'axios';
 
@@ -15,6 +16,23 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Initialize database pool
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+    maxRetries: 3,
+    retryDelay: 1000
+});
 
 // Express setup
 const app = express();
@@ -141,7 +159,7 @@ app.get('/api/schedule', async (req, res) => {
 app.get('/api/selections', async (req, res) => {
     try {
         console.log('Fetching selections...');
-        const result = await pool.query('SELECT * FROM tournament_selections ORDER BY id');
+        const result = await pool.query('SELECT event, selection, selection_date, is_locked FROM tournament_selections ORDER BY id');
         console.log('Tournament selections:', result.rows);
         res.json(result.rows);
     } catch (error) {
@@ -194,60 +212,135 @@ app.get('/api/test-insert', async (req, res) => {
 
 // Save selection
 app.post('/api/selections/save', async (req, res) => {
+    const { event, playerName, isLocked } = req.body;
+    const client = await pool.connect();
+    
     try {
-        const { event, playerName, isLocked } = req.body;
+        await client.query('BEGIN');
+
         console.log('Save endpoint received:', { event, playerName, isLocked });
 
-        const result = await saveSelection(event, playerName, isLocked);
-        console.log('Save result:', result);
+        // First check if the golfer is already in score_tracker
+        const usedGolferCheck = await client.query(`
+            SELECT event FROM score_tracker WHERE selection = $1
+        `, [playerName]);
 
-        // Fetch updated score_tracker entry
-        const scoreTrackerEntry = await pool.query(
-            'SELECT * FROM score_tracker WHERE event = $1',
-            [event]
-        );
-        console.log('Updated score_tracker entry:', scoreTrackerEntry.rows[0]);
+        if (usedGolferCheck.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+                error: 'This Golfer has already been used in a previous tournament. Please select a different one.',
+                usedIn: usedGolferCheck.rows[0].event
+            });
+        }
 
-        res.json(result);
+        // Save to tournament_selections
+        const tournamentResult = await client.query(`
+            INSERT INTO tournament_selections (event, selection, selection_date, is_locked)
+            VALUES ($1, $2, NOW(), $3)
+            ON CONFLICT (event) DO UPDATE
+            SET selection = $2, selection_date = NOW(), is_locked = $3
+            RETURNING *
+        `, [event, playerName, isLocked]);
+
+        // If locked, update score_tracker
+        if (isLocked) {
+            console.log('Updating score_tracker for locked selection');
+            await client.query(`
+                INSERT INTO score_tracker (event, selection)
+                VALUES ($1, $2)
+                ON CONFLICT (event) DO UPDATE
+                SET selection = $2
+            `, [event, playerName]);
+        }
+
+        await client.query('COMMIT');
+        
+        // Log final state
+        const finalState = await client.query(`
+            SELECT ts.*, st.selection 
+            FROM tournament_selections ts
+            LEFT JOIN score_tracker st ON ts.event = st.event
+            WHERE ts.event = $1
+        `, [event]);
+        
+        console.log('Final state after save:', finalState.rows[0]);
+        
+        res.json(tournamentResult.rows[0]);
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error saving selection:', error);
         res.status(500).json({ error: 'Failed to save selection' });
+    } finally {
+        client.release();
     }
 });
 
-// Add tournament earnings endpoint
-app.get('/api/tournament-earnings/:tournId/:year', async (req, res) => {
+// Add new endpoint for uploading score tracker data
+app.post('/api/scoretracker/upload', async (req, res) => {
     try {
-        const { tournId, year } = req.params;
-        const response = await axios.get(`https://live-golf-data.p.rapidapi.com/earnings`, {
-            params: {
-                tournId,
-                year
-            },
-            headers: {
-                'x-rapidapi-host': 'live-golf-data.p.rapidapi.com',
-                'x-rapidapi-key': 'abb8d57a72mshdc51e35db403e8bp115f1ejsn04c19819e20b'
+        console.log('Starting score tracker data upload...');
+        
+        // Read PlayersChampionshipResult.xlsx for Result and Earnings data
+        const resultsPath = join(__dirname, 'data', 'PlayersChampionshipResult.xlsx');
+        console.log('Looking for results file at:', resultsPath);
+        
+        if (!fs.existsSync(resultsPath)) {
+            throw new Error('PlayersChampionshipResult.xlsx file not found');
+        }
+
+        const resultsWorkbook = new ExcelJS.Workbook();
+        await resultsWorkbook.xlsx.readFile(resultsPath);
+        const resultsWorksheet = resultsWorkbook.getWorksheet(1);
+
+        // Create a map of results data for easy lookup by player name
+        const resultsMap = new Map();
+        resultsWorksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) { // Skip header row
+                const result = parseInt(row.getCell(1).value); // Result column - convert to integer
+                const player = row.getCell(2).text.trim(); // Player column
+                const earnings = parseInt(row.getCell(3).value.toString().replace(/[$,]/g, '')); // Earnings column - remove $ and , then convert to integer
+                
+                if (!isNaN(result) && !isNaN(earnings)) {
+                    resultsMap.set(player, { result, earnings });
+                    console.log(`Processed player data:`, { player, result, earnings });
+                }
             }
         });
 
-        console.log('Raw API response:', response.data);
+        // Get selections from tournament_selections table
+        const selectionsResult = await pool.query('SELECT * FROM tournament_selections WHERE is_locked = true');
+        console.log('Locked selections:', selectionsResult.rows);
+        
+        // Update score_tracker with results
+        for (const selection of selectionsResult.rows) {
+            if (selection.selection) {
+                const resultData = resultsMap.get(selection.selection);
+                console.log(`Processing ${selection.event} - ${selection.selection}:`, resultData);
+                
+                if (resultData) {
+                    console.log(`Updating score_tracker for ${selection.event}:`, resultData);
+                    await pool.query(`
+                        UPDATE score_tracker 
+                        SET result = $1, earnings = $2
+                        WHERE event = $3
+                    `, [resultData.result, resultData.earnings, selection.event]);
+                } else {
+                    console.log(`No results found for ${selection.selection}`);
+                }
+            }
+        }
 
-        // Transform the data to make it easier to work with
-        const earningsData = response.data.leaderboard.map(player => {
-            const name = `${player.firstName} ${player.lastName}`;
-            console.log('Transformed player name:', name);
-            console.log('Raw earnings:', player.earnings);
-            return {
-                name,
-                earnings: player.earnings.$numberInt || player.earnings // Handle both formats
-            };
-        });
+        // Verify the update
+        const verifyResult = await pool.query(`
+            SELECT * FROM score_tracker 
+            WHERE event = 'THE PLAYERS Championship'
+        `);
+        console.log('Final state of Players Championship entry:', verifyResult.rows[0]);
 
-        console.log('Transformed earnings data:', earningsData);
-        res.json(earningsData);
+        res.json({ message: 'Score tracker updated successfully' });
     } catch (error) {
-        console.error('Error fetching tournament earnings:', error);
-        res.status(500).json({ error: 'Failed to fetch tournament earnings' });
+        console.error('Error updating score tracker:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -266,78 +359,6 @@ pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
 });
 
-// Start server
-const startServer = async () => {
-    try {
-        console.log('Starting server initialization...');
-        
-        // Test database connection first
-        console.log('Testing database connection...');
-        const client = await pool.connect();
-        console.log('Database connection successful');
-        
-        const testQuery = await client.query('SELECT NOW()');
-        console.log('Database query successful:', testQuery.rows[0]);
-        client.release();
-
-        // Initialize database tables
-        console.log('Initializing database tables...');
-        await initializeDatabase();
-        console.log('Database tables initialized');
-
-        // Start the Express server with error handling
-        const server = app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-            console.log('Server initialization complete');
-            
-            // Log available endpoints
-            console.log('Available endpoints:');
-            console.log('- GET  /api/golfers');
-            console.log('- GET  /api/rankings');
-            console.log('- GET  /api/selections');
-            console.log('- POST /api/selections/save');
-            console.log('- GET  /api/scoretracker/entries');
-        });
-
-        // Add error handler for the server
-        server.on('error', (error) => {
-            if (error.code === 'EADDRINUSE') {
-                console.error(`Port ${PORT} is already in use. Stopping server...`);
-                process.exit(1);
-            } else {
-                console.error('Server error:', error);
-            }
-        });
-
-    } catch (error) {
-        console.error('Server initialization failed:', error);
-        process.exit(1);
-    }
-};
-
-console.log('Beginning server startup process...');
-startServer().catch(error => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-});
-
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-    ssl: {
-        rejectUnauthorized: false
-    },
-    // Add connection pool settings
-    max: 20, // maximum number of clients in the pool
-    idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
-    connectionTimeoutMillis: 2000, // how long to wait for a connection
-    maxRetries: 3, // number of retries for connection
-    retryDelay: 1000, // delay between retries in milliseconds
-});
-
 // Test database connection
 const testConnection = async () => {
     try {
@@ -351,21 +372,31 @@ const testConnection = async () => {
     }
 };
 
-// Initialize database connection
-const initializeDatabase = async () => {
-    let retries = 3;
-    while (retries > 0) {
-        if (await testConnection()) {
-            break;
-        }
-        retries--;
-        if (retries > 0) {
-            console.log(`Retrying database connection... (${retries} attempts left)`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+// Initialize server
+const startServer = async () => {
+    console.log('Beginning server startup process...');
+    try {
+        console.log('Starting server initialization...');
+        
+        // Test database connection with retries
+        console.log('Testing database connection...');
+        await testConnection();
+        
+        // Initialize database tables
+        console.log('Initializing database tables...');
+        await initializeDatabase();
+        
+        // Start the server
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+            console.log('Server initialization complete');
+        });
+    } catch (error) {
+        console.error('Server initialization failed:', error);
+        process.exit(1);
     }
 };
 
-// Call initialization
-initializeDatabase();
+// Start the server
+startServer();
 

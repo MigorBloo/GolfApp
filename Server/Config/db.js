@@ -16,11 +16,17 @@ const dbConfig = {
     ssl: {
         rejectUnauthorized: false
     },
-    connectionTimeoutMillis: 10000, // 10 seconds
-    query_timeout: 10000,
-    statement_timeout: 10000,
-    max: 20, // maximum number of clients in the pool
-    idleTimeoutMillis: 30000
+    connectionTimeoutMillis: 30000, // Increased to 30 seconds
+    query_timeout: 30000,
+    statement_timeout: 30000,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    retry: {
+        retries: 3,
+        factor: 2,
+        minTimeout: 1000,
+        maxTimeout: 5000
+    }
 };
 
 console.log('Database configuration (excluding password):', {
@@ -35,21 +41,30 @@ pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
 });
 
-// Test the connection immediately
-pool.connect((err, client, done) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-    } else {
-        console.log('Successfully connected to database');
-        client.query('SELECT NOW()', (err, result) => {
-            done();
-            if (err) {
-                console.error('Error running test query:', err);
-            } else {
-                console.log('Test query successful:', result.rows[0]);
+// Test the connection with retries
+const testConnection = async (retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const client = await pool.connect();
+            const result = await client.query('SELECT NOW()');
+            client.release();
+            console.log('Test query successful:', result.rows[0]);
+            return true;
+        } catch (err) {
+            console.error(`Connection attempt ${i + 1} failed:`, err.message);
+            if (i < retries - 1) {
+                console.log(`Retrying in ${(i + 1) * 2} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000));
             }
-        });
+        }
     }
+    throw new Error('Failed to connect to database after multiple attempts');
+};
+
+// Initialize the connection
+testConnection().catch(err => {
+    console.error('Failed to initialize database connection:', err);
+    process.exit(1);
 });
 
 export default pool;
