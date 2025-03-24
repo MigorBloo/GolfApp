@@ -14,19 +14,12 @@ const dbConfig = {
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        require: true
     },
-    connectionTimeoutMillis: 30000, // Increased to 30 seconds
-    query_timeout: 30000,
-    statement_timeout: 30000,
+    connectionTimeoutMillis: 5000, // Reduced to 5 seconds for faster feedback
     max: 20,
-    idleTimeoutMillis: 30000,
-    retry: {
-        retries: 3,
-        factor: 2,
-        minTimeout: 1000,
-        maxTimeout: 5000
-    }
+    idleTimeoutMillis: 30000
 };
 
 console.log('Database configuration (excluding password):', {
@@ -41,24 +34,18 @@ pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
 });
 
-// Test the connection with retries
-const testConnection = async (retries = 3) => {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const client = await pool.connect();
-            const result = await client.query('SELECT NOW()');
-            client.release();
-            console.log('Test query successful:', result.rows[0]);
-            return true;
-        } catch (err) {
-            console.error(`Connection attempt ${i + 1} failed:`, err.message);
-            if (i < retries - 1) {
-                console.log(`Retrying in ${(i + 1) * 2} seconds...`);
-                await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000));
-            }
-        }
+// Test the connection
+const testConnection = async () => {
+    try {
+        const client = await pool.connect();
+        const result = await client.query('SELECT NOW()');
+        client.release();
+        console.log('Database connection successful:', result.rows[0]);
+        return true;
+    } catch (err) {
+        console.error('Failed to connect to database:', err.message);
+        throw err;
     }
-    throw new Error('Failed to connect to database after multiple attempts');
 };
 
 // Initialize the connection

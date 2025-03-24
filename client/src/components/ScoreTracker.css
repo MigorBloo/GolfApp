@@ -16,12 +16,13 @@
 }
 
 .score-tracker-table-container {
-    height: 220px;
+    height: 300px;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
     margin-bottom: 15px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
+    position: relative;
 }
 
 .score-tracker-table {
@@ -34,8 +35,11 @@
 .score-tracker-table thead {
     position: sticky;
     top: 0;
-    background-color: #f8f9fa;
     z-index: 1;
+}
+
+.score-tracker-table thead tr {
+    background-color: #e9ecef;
 }
 
 .score-tracker-table th,
@@ -47,49 +51,48 @@
 }
 
 .score-tracker-table th {
-    background-color: #f8f9fa;
     font-weight: 600;
     color: #495057;
     font-size: 0.9rem;
 }
 
-.score-tracker-table tr:hover {
-    background-color: #f8f9fa;
+.score-tracker-table tbody tr:hover {
+    background-color: #f5f5f5;
 }
 
-.total-earnings-row {
-    margin-top: 15px;
-    border-top: 2px solid #dee2e6;
+.score-tracker-table td:first-child {
+    font-weight: 700;
+    color: #2d3748;
+    font-size: 0.85rem;
 }
 
-.total-earnings-row table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-}
-
-.total-earnings-row td {
-    padding: 8px 12px;
-    font-weight: 600;
-    color: #495057;
-}
-
-.total-earnings-row td:first-child {
-    text-align: left;
-}
-
-.total-earnings-row td:last-child {
-    text-align: right;
-}
-
+/* Positive earnings in green */
 .positive-earnings {
-    color: #28a745;
-    font-weight: 500;
+    color: #28a745 !important;
 }
 
-.negative-earnings {
-    color: #dc3545;
-    font-weight: 500;
+/* Zero earnings in red */
+.zero-earnings {
+    color: #dc3545 !important;
+}
+
+/* Total row styling */
+.total-row {
+    position: sticky;
+    bottom: 0;
+    background-color: #e9ecef;
+    border-top: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.total-row td {
+    padding: 12px;
+    color: #2d3748;
+}
+
+.total-row td:first-child {
+    text-align: left;
+    color: #2d3748;
 }
 
 /* Scrollbar styling */
@@ -135,49 +138,9 @@
     scrollbar-color: #cbd5e0 #f7fafc;
 }
 
-/* Total earnings row styles */
-.total-earnings-row {
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #f8f9fa;
-    border-top: 2px solid #dee2e6;
-    z-index: 2;
-}
-
-.total-earnings-row .score-tracker-table {
-    margin: 0;
-    background: #f8f9fa;
-}
-
-.total-earnings-row tr {
-    height: 32px; /* Reduced height */
-}
-
-.total-earnings-row td {
-    padding: 6px 8px; /* Reduced padding */
-    font-weight: 600;
-    border-bottom: none;
-}
-
-.total-earnings-row td:first-child {
-    color: #2d3748;
-}
-
-.total-earnings-row td:nth-child(4) {
-    color: #2c5282;
-}
-
 /* Remove the old styles */
 .total-earnings-content,
 .total-label,
 .total-amount {
     display: none;
-}
-
-.score-tracker-table td:first-child {
-    font-weight: 700;  /* Bolder than the default */
-    color: #2d3748;    /* Darker color for better contrast */
-    font-size: 0.85rem; /* Slightly larger than other cells */
 }

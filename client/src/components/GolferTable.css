@@ -211,3 +211,23 @@
 .golfer-table tr.used-golfer input[type="checkbox"] {
     opacity: 0.5;
 }
+
+.used-golfer {
+    opacity: 0.5;
+    background-color: #f5f5f5;
+    color: #999;
+}
+
+.used-golfer td {
+    color: #999;
+}
+
+.used-golfer input[type="checkbox"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.used-golfer:hover {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}

@@ -38,9 +38,21 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
                 setSchedule(scheduleWithIds);
                 setLoading(false);
                 updateActiveSchedule(scheduleWithIds);
+
+                // Refresh selections after schedule is loaded
+                console.log('Refreshing selections...');
+                const selectionsResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/selections`);
+                console.log('Received selections:', selectionsResponse.data);
+                
+                const savedSelections = selectionsResponse.data.reduce((acc, selection) => {
+                    acc[selection.event] = selection.selection;
+                    return acc;
+                }, {});
+                console.log('Processed selections:', savedSelections);
+                setSelections(savedSelections);
             } catch (err) {
-                console.error('Error loading schedule data:', err);
-                setError('Failed to load schedule data');
+                console.error('Error loading data:', err);
+                setError('Failed to load data');
                 setLoading(false);
                 setSchedule([]);
                 setActiveSchedule([]);
@@ -122,22 +134,22 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
 
     const handleConfirmSelection = async (tournament, index) => {
         try {
-            const isFirstTournament = index === 0;
             const eventName = tournament.Event || tournament.event;
+            const tournamentDate = new Date(tournament.StartDate);
+            const now = new Date();
+            const isLocked = tournamentDate <= now;
             
             console.log('Confirming selection:', {
                 event: eventName,
                 playerName: tempSelection,
-                isLocked: isFirstTournament && isLocked,
-                index: index,
-                isFirstTournament: isFirstTournament,
-                globalIsLocked: isLocked
+                isLocked: isLocked,
+                index: index
             });
 
             const response = await axios.post('/api/selections/save', {
                 event: eventName,
                 playerName: tempSelection,
-                isLocked: isFirstTournament && isLocked
+                isLocked: isLocked
             });
 
             console.log('Save response:', response.data);

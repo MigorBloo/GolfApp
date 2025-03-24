@@ -1,55 +1,68 @@
 .leaderboard-container {
-    background-color: white;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     padding: 15px;
+    background-color: #f8f9fa;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .leaderboard-container h2 {
-    color: #2d3748;
-    font-size: 1.25rem;
     margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #edf2f7;
+    color: #333;
+    font-size: 1.2rem;
 }
 
-.leaderboard-table-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
+.leaderboard-table-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 .leaderboard-table {
     width: 100%;
     border-collapse: collapse;
+    background-color: white;
     font-size: 0.9rem;
 }
 
-.leaderboard-table th {
-    position: sticky;
-    top: 0;
-    background-color: #f8fafc;
-    padding: 12px 8px;
-    text-align: left;
-    color: #4a5568;
-    font-weight: 600;
-    border-bottom: 2px solid #edf2f7;
-}
-
+.leaderboard-table th,
 .leaderboard-table td {
-    padding: 8px;
-    border-bottom: 1px solid #edf2f7;
-    color: #2d3748;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
 }
 
-.leaderboard-table tr:last-child td {
-    border-bottom: none;
+.leaderboard-table th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: #495057;
 }
 
 .leaderboard-table tr:hover {
-    background-color: #f7fafc;
+    background-color: #f5f5f5;
+}
+
+.leaderboard-table .leader {
+    background-color: #fff3cd;
+}
+
+.leaderboard-table .leader:hover {
+    background-color: #ffeeba;
+}
+
+.leaderboard-table td.earnings {
+    font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 8px;
+        font-size: 0.8rem;
+    }
 }
 
 /* Add specific column styling */
