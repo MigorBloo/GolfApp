@@ -529,20 +529,20 @@ const authenticateToken = (req, res, next) => {
 
 // User registration endpoint
 app.post('/api/register', async (req, res) => {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
-        // Check if email already exists
+        // Check if email or username already exists
         const userCheck = await client.query(
-            'SELECT * FROM users WHERE email = $1',
-            [email]
+            'SELECT * FROM users WHERE email = $1 OR username = $2',
+            [email, username]
         );
 
         if (userCheck.rows.length > 0) {
-            throw new Error('Email already registered');
+            throw new Error('Email or username already registered');
         }
 
         // Hash the password
@@ -550,16 +550,16 @@ app.post('/api/register', async (req, res) => {
 
         // Insert the new user
         const result = await client.query(
-            'INSERT INTO users (email, password, is_admin) VALUES ($1, $2, $3) RETURNING id, email, is_admin',
-            [email, hashedPassword, false] // Set is_admin to false for regular users
+            'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email',
+            [username, email, hashedPassword]
         );
 
         // Generate JWT token
         const token = jwt.sign(
             { 
                 userId: result.rows[0].id,
-                email: result.rows[0].email,
-                isAdmin: result.rows[0].is_admin
+                username: result.rows[0].username,
+                email: result.rows[0].email
             },
             JWT_SECRET,
             { expiresIn: '24h' }
@@ -571,15 +571,15 @@ app.post('/api/register', async (req, res) => {
             token,
             user: {
                 id: result.rows[0].id,
-                email: result.rows[0].email,
-                isAdmin: result.rows[0].is_admin
+                username: result.rows[0].username,
+                email: result.rows[0].email
             }
         });
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Registration error:', error);
         res.status(400).json({ 
-            error: error.message === 'Email already registered' 
+            error: error.message === 'Email or username already registered' 
                 ? error.message 
                 : 'Registration failed' 
         });
@@ -589,32 +589,42 @@ app.post('/api/register', async (req, res) => {
 });
 
 // User login endpoint
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    const client = await pool.connect();
 
-        // Check if user exists
-        const result = await pool.query(
+    try {
+        // Find user by email
+        const result = await client.query(
             'SELECT * FROM users WHERE email = $1',
             [email]
         );
 
         if (result.rows.length === 0) {
-            return res.status(400).json({ error: 'User not found' });
+            throw new Error('Invalid credentials');
         }
 
         const user = result.rows[0];
 
-        // Validate password
+        // Check password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            return res.status(400).json({ error: 'Invalid password' });
+            throw new Error('Invalid credentials');
         }
 
-        // Create and assign token
-        const token = jwt.sign({ id: user.id }, JWT_SECRET);
+        // Generate token
+        const token = jwt.sign(
+            { 
+                userId: user.id,
+                username: user.username,
+                email: user.email
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
         res.json({
+            message: 'Login successful',
             token,
             user: {
                 id: user.id,
@@ -624,7 +634,9 @@ app.post('/api/auth/login', async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Error logging in' });
+        res.status(401).json({ error: 'Invalid credentials' });
+    } finally {
+        client.release();
     }
 });
 
@@ -666,13 +678,14 @@ app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                u.username,
-                SUM(COALESCE(st.earnings, 0)) as total_earnings,
-                COUNT(DISTINCT st.event) as tournaments_played
-            FROM users u
-            LEFT JOIN score_tracker st ON u.id = st.user_id
-            GROUP BY u.id, u.username
-            ORDER BY total_earnings DESC
+                t.event,
+                t.selection,
+                COALESCE(u.username, 'Unknown') as username,
+                t.result,
+                t.earnings
+            FROM score_tracker t
+            LEFT JOIN users u ON t.user_id = u.id
+            ORDER BY t.id DESC
         `);
         res.json(result.rows);
     } catch (error) {

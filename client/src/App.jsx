@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Snapshot from './components/Snapshot';
 import ScoreTracker from './components/ScoreTracker';
@@ -8,9 +9,11 @@ import Schedule from './components/Schedule';
 import GolferRankings from './components/GolferRankings';
 import Leaderboard from './components/Leaderboard';
 import Header from './components/Header';
+import AuthPage from './components/AuthPage';
 import './styles.css';
 
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
     const [golfers, setGolfers] = useState([]);
     const [eventInfo, setEventInfo] = useState({
         event_name: '',
@@ -76,6 +79,17 @@ function App() {
     const indexOfFirstGolfer = indexOfLastGolfer - golfersPerPage;
     const golfersToDisplay = golfers.slice(indexOfFirstGolfer, indexOfLastGolfer);
     const totalPages = Math.ceil(golfers.length / golfersPerPage);
+
+    // Add authentication check
+    const checkAuth = () => {
+        const token = localStorage.getItem('token');
+        setIsAuthenticated(!!token);
+    };
+
+    // Add this to your existing useEffect
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -144,7 +158,8 @@ function App() {
         console.log('Current rankedGolfers state:', rankedGolfers);
     }, [rankedGolfers]);
 
-    return (
+    // Your existing MainContent component
+    const MainContent = () => (
         <div className="app">
             <Header />
             <div className="app-container">
@@ -194,6 +209,23 @@ function App() {
                 </div>
             </div>
         </div>
+    );
+
+    // Return the router with conditional rendering
+    return (
+        <Router>
+            <Routes>
+                <Route 
+                    path="/" 
+                    element={isAuthenticated ? <Navigate to="/home" /> : <AuthPage onLogin={() => setIsAuthenticated(true)} />} 
+                />
+                <Route 
+                    path="/home" 
+                    element={isAuthenticated ? <MainContent /> : <Navigate to="/" />} 
+                />
+                <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+        </Router>
     );
 }
 
