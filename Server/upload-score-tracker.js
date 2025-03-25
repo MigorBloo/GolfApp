@@ -12,13 +12,13 @@ console.log('Current directory:', __dirname);
 
 // Check if files exist
 const schedulePath = path.join(__dirname, 'data', 'schedule.xlsx');
-const resultsPath = path.join(__dirname, 'data', 'PlayersChampionshipResult.xlsx');
+const resultsPath = path.join(__dirname, 'data', 'WeeklyResult.xlsx');
 
 console.log('\nChecking file existence:');
 console.log('schedule.xlsx path:', schedulePath);
 console.log('schedule.xlsx exists:', fs.existsSync(schedulePath));
-console.log('PlayersChampionshipResult.xlsx path:', resultsPath);
-console.log('PlayersChampionshipResult.xlsx exists:', fs.existsSync(resultsPath));
+console.log('WeeklyResult.xlsx path:', resultsPath);
+console.log('WeeklyResult.xlsx exists:', fs.existsSync(resultsPath));
 
 fetch('http://localhost:8001/api/scoretracker/upload', {
     method: 'POST',

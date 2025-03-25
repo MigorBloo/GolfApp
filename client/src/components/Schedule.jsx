@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Schedule.css';
+import { message } from 'antd';
 
 // Add this utility function
 const getNextThursdayDate = () => {
@@ -23,33 +24,41 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
     const [activeSchedule, setActiveSchedule] = useState([]);
     const [nextTournamentDate, setNextTournamentDate] = useState(getNextThursdayDate());
     const [errorMessage, setErrorMessage] = useState('');
+    const [rankings, setRankings] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 console.log('Fetching schedule data...');
-                const scheduleResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/schedule`);
-                console.log('Schedule response:', scheduleResponse.data);
-                const scheduleData = scheduleResponse.data;
+                const [scheduleRes, rankingsRes, selectionsRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/schedule`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/rankings`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/tournament-selections`)
+                ]);
+
+                console.log('Schedule response:', scheduleRes.data);
+                console.log('Rankings response:', rankingsRes.data);
+                console.log('Selections response:', selectionsRes.data);
+
+                const scheduleData = scheduleRes.data;
                 const scheduleWithIds = scheduleData.map((tournament, index) => ({
                     ...tournament,
                     id: tournament.id || index + 1
                 }));
                 setSchedule(scheduleWithIds);
+                setRankings(rankingsRes.data.rankings);
+                
+                // Convert selections array to object for easier lookup
+                const selectionsObj = {};
+                selectionsRes.data.forEach(item => {
+                    selectionsObj[item.event] = {
+                        selection: item.selection,
+                        is_locked: item.is_locked
+                    };
+                });
+                setSelections(selectionsObj);
                 setLoading(false);
                 updateActiveSchedule(scheduleWithIds);
-
-                // Refresh selections after schedule is loaded
-                console.log('Refreshing selections...');
-                const selectionsResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/selections`);
-                console.log('Received selections:', selectionsResponse.data);
-                
-                const savedSelections = selectionsResponse.data.reduce((acc, selection) => {
-                    acc[selection.event] = selection.selection;
-                    return acc;
-                }, {});
-                console.log('Processed selections:', savedSelections);
-                setSelections(savedSelections);
             } catch (err) {
                 console.error('Error loading data:', err);
                 setError('Failed to load data');
@@ -132,46 +141,31 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
         }
     };
 
-    const handleConfirmSelection = async (tournament, index) => {
+    const handleSelectionChange = async (value, event) => {
         try {
-            const eventName = tournament.Event || tournament.event;
-            const tournamentDate = new Date(tournament.StartDate);
-            const now = new Date();
-            const isLocked = tournamentDate <= now;
-            
-            console.log('Confirming selection:', {
-                event: eventName,
-                playerName: tempSelection,
-                isLocked: isLocked,
-                index: index
+            // Check if tournament is locked
+            if (selections[event]?.is_locked) {
+                message.error('This tournament is locked and cannot be modified');
+                return;
+            }
+
+            await axios.post(`${process.env.REACT_APP_API_URL}/api/selections/save`, {
+                event: event,
+                selection: value
             });
 
-            const response = await axios.post('/api/selections/save', {
-                event: eventName,
-                playerName: tempSelection,
-                isLocked: isLocked
-            });
-
-            console.log('Save response:', response.data);
-            
-            // Update local state
             setSelections(prev => ({
                 ...prev,
-                [eventName]: tempSelection
+                [event]: {
+                    ...prev[event],
+                    selection: value
+                }
             }));
-            
-            // Clear temporary states
-            setTempSelection(null);
-            setActiveBoxId(null);
-            setSuggestions([]);
-            setActiveSuggestionBox(null);
+
+            message.success('Selection saved successfully');
         } catch (error) {
             console.error('Error saving selection:', error);
-            if (error.response?.data?.error) {
-                alert(error.response.data.error);
-            } else {
-                alert('Failed to save selection');
-            }
+            message.error('Failed to save selection');
         }
     };
 
@@ -191,7 +185,7 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
         const eventName = tournament.Event || tournament.event;
         const currentValue = activeBoxId === tournament.id
             ? tempSelection || ''
-            : selections[eventName] || '';
+            : selections[eventName]?.selection || '';
     
         return (
             <div className={`selection-container ${isLocked ? 'locked' : ''}`}>
@@ -223,7 +217,7 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
                         <div className="action-buttons">
                             <button 
                                 className="action-button confirm-button"
-                                onClick={() => handleConfirmSelection(tournament, index)}
+                                onClick={() => handleSelectionChange(tempSelection, eventName)}
                                 title="Confirm selection"
                             >
                                 <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">

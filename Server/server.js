@@ -43,6 +43,7 @@ const apiKey = process.env.DATAGOLF_API_KEY;
 
 // Add JWT secret to your .env file
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const SALT_ROUNDS = 10;
 
 // Middleware
 app.use(cors({
@@ -230,23 +231,24 @@ app.get('/api/selections', async (req, res) => {
 });
 
 app.get('/api/scoretracker/entries', async (req, res) => {
+    const client = await pool.connect();
     try {
-        console.log('Fetching score tracker entries...');
-        const result = await pool.query(`
+        const result = await client.query(`
             SELECT 
                 id,
                 event,
                 selection,
                 result,
-                earnings
-            FROM score_tracker 
-            ORDER BY id
+                format_currency(earnings) as earnings
+            FROM score_tracker
+            ORDER BY id;
         `);
-        console.log('Score tracker entries:', result.rows);
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching score tracker entries:', error);
-        res.status(500).json({ error: 'Failed to fetch score tracker entries' });
+        res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        client.release();
     }
 });
 
@@ -526,44 +528,63 @@ const authenticateToken = (req, res, next) => {
 };
 
 // User registration endpoint
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
+app.post('/api/register', async (req, res) => {
+    const { email, password } = req.body;
+    const client = await pool.connect();
 
-        // Check if user already exists
-        const userExists = await pool.query(
-            'SELECT * FROM users WHERE email = $1 OR username = $2',
-            [email, username]
+    try {
+        await client.query('BEGIN');
+
+        // Check if email already exists
+        const userCheck = await client.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
         );
 
-        if (userExists.rows.length > 0) {
-            return res.status(400).json({ error: 'User already exists' });
+        if (userCheck.rows.length > 0) {
+            throw new Error('Email already registered');
         }
 
         // Hash the password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-        // Create new user
-        const result = await pool.query(
-            'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email',
-            [username, email, hashedPassword]
+        // Insert the new user
+        const result = await client.query(
+            'INSERT INTO users (email, password, is_admin) VALUES ($1, $2, $3) RETURNING id, email, is_admin',
+            [email, hashedPassword, false] // Set is_admin to false for regular users
         );
 
-        // Create JWT token
-        const token = jwt.sign({ id: result.rows[0].id }, JWT_SECRET);
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                userId: result.rows[0].id,
+                email: result.rows[0].email,
+                isAdmin: result.rows[0].is_admin
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
-        res.status(201).json({
+        await client.query('COMMIT');
+        res.json({ 
+            message: 'Registration successful',
             token,
             user: {
                 id: result.rows[0].id,
-                username: result.rows[0].username,
-                email: result.rows[0].email
+                email: result.rows[0].email,
+                isAdmin: result.rows[0].is_admin
             }
         });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Error registering user' });
+        res.status(400).json({ 
+            error: error.message === 'Email already registered' 
+                ? error.message 
+                : 'Registration failed' 
+        });
+    } finally {
+        client.release();
     }
 });
 
@@ -687,6 +708,27 @@ app.get('/api/snapshot', async (req, res) => {
     }
 });
 
+// Add this new endpoint before the last app.listen line
+app.post('/api/admin/clear-tables', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Clear both tables and reset their sequences
+    await client.query('TRUNCATE TABLE tournament_selections, score_tracker RESTART IDENTITY CASCADE');
+    
+    await client.query('COMMIT');
+    console.log('Successfully cleared tournament_selections and score_tracker tables');
+    res.json({ message: 'Tables cleared successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error clearing tables:', error);
+    res.status(500).json({ error: 'Failed to clear tables' });
+  } finally {
+    client.release();
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error occurred:', err);
@@ -742,4 +784,137 @@ const startServer = async () => {
 
 // Start the server
 startServer();
+
+// Update the POST endpoint for score tracker
+app.post('/api/scoretracker/entry', async (req, res) => {
+    const { event, selection, result, earnings } = req.body;
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // First check if the selection exists in tournament_selections
+        const selectionCheck = await client.query(
+            'SELECT * FROM tournament_selections WHERE event = $1 AND selection = $2',
+            [event, selection]
+        );
+        
+        if (selectionCheck.rows.length === 0) {
+            throw new Error('Selection not found in tournament_selections');
+        }
+        
+        // Insert into score_tracker
+        const insertResult = await client.query(
+            'INSERT INTO score_tracker (event, selection, result, earnings) VALUES ($1, $2, $3, $4) RETURNING id',
+            [event, selection, result, earnings]
+        );
+        
+        // Fetch the inserted row with formatted earnings
+        const newEntry = await client.query(
+            'SELECT id, event, selection, result, format_currency(earnings) as earnings FROM score_tracker WHERE id = $1',
+            [insertResult.rows[0].id]
+        );
+        
+        await client.query('COMMIT');
+        res.json(newEntry.rows[0]);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error adding score tracker entry:', error);
+        res.status(500).json({ error: 'Failed to add score tracker entry' });
+    } finally {
+        client.release();
+    }
+});
+
+// Update GET endpoint for tournament selections to include is_locked
+app.get('/api/tournament-selections', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      SELECT 
+        id,
+        event,
+        selection,
+        selection_date,
+        is_locked
+      FROM tournament_selections
+      ORDER BY id;
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching tournament selections:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update save endpoint to handle is_locked
+app.post('/api/save', async (req, res) => {
+  const { event, selection } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check if tournament is locked
+    const lockCheck = await client.query(
+      'SELECT is_locked FROM tournament_selections WHERE event = $1',
+      [event]
+    );
+
+    if (lockCheck.rows.length > 0 && lockCheck.rows[0].is_locked) {
+      throw new Error('Tournament is locked and cannot be modified');
+    }
+
+    // Update or insert the selection
+    const result = await client.query(
+      `INSERT INTO tournament_selections (event, selection, selection_date)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (event) DO UPDATE
+       SET selection = $2,
+           selection_date = CURRENT_TIMESTAMP
+       WHERE tournament_selections.is_locked = false
+       RETURNING *`,
+      [event, selection]
+    );
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error saving selection:', error);
+    res.status(500).json({ 
+      error: error.message === 'Tournament is locked and cannot be modified' 
+        ? error.message 
+        : 'Failed to save selection' 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Add new endpoint to lock/unlock tournament
+app.post('/api/tournament/lock', async (req, res) => {
+  const { event, lock } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      'UPDATE tournament_selections SET is_locked = $1 WHERE event = $2 RETURNING *',
+      [lock, event]
+    );
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating tournament lock status:', error);
+    res.status(500).json({ error: 'Failed to update tournament lock status' });
+  } finally {
+    client.release();
+  }
+});
 
