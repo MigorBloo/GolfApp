@@ -1,7 +1,70 @@
 .snapshot-container {
-    background-color: white;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     padding: 15px;
+    background-color: #f8f9fa;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.snapshot-container h2 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.snapshot-table-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.snapshot-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    font-size: 0.9rem;
+}
+
+.snapshot-table th,
+.snapshot-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.snapshot-table th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: #495057;
+}
+
+.snapshot-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.snapshot-table .leader {
+    background-color: #fff3cd;
+}
+
+.snapshot-table .leader:hover {
+    background-color: #ffeeba;
+}
+
+.positive-earnings {
+    color: #28a745 !important;
+}
+
+.zero-earnings {
+    color: #dc3545 !important;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .snapshot-table th,
+    .snapshot-table td {
+        padding: 8px;
+        font-size: 0.8rem;
+    }
 }

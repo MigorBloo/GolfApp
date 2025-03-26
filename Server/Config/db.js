@@ -14,12 +14,11 @@ const dbConfig = {
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        require: true
     },
-    connectionTimeoutMillis: 10000, // 10 seconds
-    query_timeout: 10000,
-    statement_timeout: 10000,
-    max: 20, // maximum number of clients in the pool
+    connectionTimeoutMillis: 5000, // Reduced to 5 seconds for faster feedback
+    max: 20,
     idleTimeoutMillis: 30000
 };
 
@@ -35,21 +34,24 @@ pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
 });
 
-// Test the connection immediately
-pool.connect((err, client, done) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-    } else {
-        console.log('Successfully connected to database');
-        client.query('SELECT NOW()', (err, result) => {
-            done();
-            if (err) {
-                console.error('Error running test query:', err);
-            } else {
-                console.log('Test query successful:', result.rows[0]);
-            }
-        });
+// Test the connection
+const testConnection = async () => {
+    try {
+        const client = await pool.connect();
+        const result = await client.query('SELECT NOW()');
+        client.release();
+        console.log('Database connection successful:', result.rows[0]);
+        return true;
+    } catch (err) {
+        console.error('Failed to connect to database:', err.message);
+        throw err;
     }
+};
+
+// Initialize the connection
+testConnection().catch(err => {
+    console.error('Failed to initialize database connection:', err);
+    process.exit(1);
 });
 
 export default pool;

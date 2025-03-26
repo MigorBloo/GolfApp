@@ -8,31 +8,45 @@ export const initializeDatabase = async () => {
     try {
         console.log('Initializing database...');
         
+        // First, verify we can connect and query
+        const testResult = await client.query('SELECT NOW()');
+        console.log('Database connection verified:', testResult.rows[0]);
+
+        // Create tournament_selections table if it doesn't exist
+        console.log('Checking tournament_selections table...');
         await client.query(`
             CREATE TABLE IF NOT EXISTS tournament_selections (
                 id SERIAL PRIMARY KEY,
-                tournament_id INTEGER NOT NULL,
-                player_name VARCHAR(255) NOT NULL,
-                selection_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_locked BOOLEAN NOT NULL DEFAULT false,
-                UNIQUE(tournament_id)
+                event VARCHAR(255) NOT NULL UNIQUE,
+                selection VARCHAR(255),
+                selection_date TIMESTAMP,
+                is_locked BOOLEAN DEFAULT false
             );
         `);
+        console.log('tournament_selections table verified');
 
+        // Create score_tracker table if it doesn't exist
+        console.log('Checking score_tracker table...');
         await client.query(`
             CREATE TABLE IF NOT EXISTS score_tracker (
                 id SERIAL PRIMARY KEY,
-                tournament_id INTEGER NOT NULL,
-                player_name VARCHAR(255) NOT NULL,
-                entry_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                result VARCHAR(255),
-                earnings DECIMAL,
-                winner VARCHAR(255),
-                UNIQUE(tournament_id)
+                event VARCHAR(255) UNIQUE NOT NULL,
+                selection VARCHAR(255),
+                result NUMERIC,
+                earnings NUMERIC
             );
         `);
+        console.log('score_tracker table verified');
 
-        console.log('Database initialization completed');
+        // Verify tables exist
+        const tablesResult = await client.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        `);
+        console.log('Existing tables:', tablesResult.rows.map(r => r.table_name));
+
+        console.log('Database initialization completed successfully');
     } catch (error) {
         console.error('Error initializing database:', error);
         throw error;
@@ -41,21 +55,21 @@ export const initializeDatabase = async () => {
     }
 };
 
-export const saveSelection = async (event, playerName, isLocked) => {
+export const saveSelection = async (event, selection, isLocked) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        console.log('Saving selection with lock status:', { event, playerName, isLocked });
+        console.log('Saving selection with lock status:', { event, selection, isLocked });
 
         // Save to tournament_selections
         const tournamentResult = await client.query(`
-            INSERT INTO tournament_selections (event, player_name, selection_date, is_locked)
+            INSERT INTO tournament_selections (event, selection, selection_date, is_locked)
             VALUES ($1, $2, NOW(), $3)
             ON CONFLICT (event) DO UPDATE
-            SET player_name = $2, selection_date = NOW(), is_locked = $3
+            SET selection = $2, selection_date = NOW(), is_locked = $3
             RETURNING *
-        `, [event, playerName, isLocked]);
+        `, [event, selection, isLocked]);
 
         // If locked, update score_tracker
         if (isLocked) {
@@ -64,7 +78,7 @@ export const saveSelection = async (event, playerName, isLocked) => {
                 UPDATE score_tracker
                 SET selection = $1
                 WHERE event = $2
-            `, [playerName, event]);
+            `, [selection, event]);
         }
 
         await client.query('COMMIT');

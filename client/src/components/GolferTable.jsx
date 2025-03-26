@@ -27,8 +27,8 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
     };
 
     // Update these constants at the top of your component
-    const eventDate = "2025-03-20";
-    const startTime = "08:15 AM EST";
+    const eventDate = "2025-03-27";
+    const startTime = "10:15 AM EST";
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
@@ -115,8 +115,9 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
 
     const handleGolferSelection = (golfer) => {
         const playerName = formatPlayerName(golfer.name);
-        // Don't allow selection if golfer is already used
-        if (usedGolfers.some(usedGolfer => usedGolfer && playerName.toLowerCase() === usedGolfer.toLowerCase())) {
+        // Don't allow selection if golfer is already used or has 0% availability
+        if (usedGolfers.some(usedGolfer => usedGolfer && playerName.toLowerCase() === usedGolfer.toLowerCase()) ||
+            golfer.Availability === '0%' || golfer.Availability === 0) {
             return;
         }
         
@@ -203,13 +204,14 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                         const isUsed = usedGolfers.some(usedGolfer => 
                             usedGolfer && golferName.toLowerCase() === usedGolfer.toLowerCase()
                         );
+                        const isUnavailable = golfer.Availability === '0%' || golfer.Availability === 0;
                         
                         return (
                             <tr 
                                 key={index}
-                                className={`${isSelected ? 'selected-row' : ''} ${isUsed ? 'used-golfer' : ''}`}
-                                onClick={() => !isUsed && handleGolferSelection(golfer)}
-                                style={{ cursor: isUsed ? 'not-allowed' : 'pointer' }}
+                                className={`${isSelected ? 'selected-row' : ''} ${isUsed || isUnavailable ? 'used-golfer' : ''}`}
+                                onClick={() => !isUsed && !isUnavailable && handleGolferSelection(golfer)}
+                                style={{ cursor: (isUsed || isUnavailable) ? 'not-allowed' : 'pointer' }}
                             >
                                 <td title={golferName}>{golferName}</td>
                                 <td title={golfer.country}>{golfer.country}</td>
@@ -221,8 +223,8 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
-                                        onChange={() => !isUsed && handleGolferSelection(golfer)}
-                                        disabled={isUsed}
+                                        onChange={() => !isUsed && !isUnavailable && handleGolferSelection(golfer)}
+                                        disabled={isUsed || isUnavailable}
                                     />
                                 </td>
                             </tr>

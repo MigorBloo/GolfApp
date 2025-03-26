@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Schedule.css';
+import { message } from 'antd';
 
 // Add this utility function
 const getNextThursdayDate = () => {
@@ -11,41 +12,66 @@ const getNextThursdayDate = () => {
     return thursday;
 };
 
-function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfers = [] }) {
+const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, isLocked, usedGolfers }) => {
     const [schedule, setSchedule] = useState([]);
     const [selections, setSelections] = useState({});
+    const [suggestions, setSuggestions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [tempSelection, setTempSelection] = useState(null);
     const [activeBoxId, setActiveBoxId] = useState(null);
-    const [suggestions, setSuggestions] = useState([]);
     const [activeSuggestionBox, setActiveSuggestionBox] = useState(null);
     const [activeSchedule, setActiveSchedule] = useState([]);
     const [nextTournamentDate, setNextTournamentDate] = useState(getNextThursdayDate());
     const [errorMessage, setErrorMessage] = useState('');
+    const [rankings, setRankings] = useState([]);
 
-    // Load schedule data from Excel
     useEffect(() => {
-        const fetchSchedule = async () => {
+        const fetchData = async () => {
             try {
-                const response = await axios.get('/api/schedule');
-                console.log('Received schedule data:', response.data); // Add this log
-                const scheduleData = Array.isArray(response.data) ? response.data : [];
+                console.log('Fetching schedule data...');
+                const [scheduleRes, rankingsRes, selectionsRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/schedule`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/rankings`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/api/tournament-selections`)
+                ]);
+
+                console.log('Schedule response:', scheduleRes.data);
+                console.log('Rankings response:', rankingsRes.data);
+                console.log('Selections response:', selectionsRes.data);
+
+                const scheduleData = scheduleRes.data;
                 const scheduleWithIds = scheduleData.map((tournament, index) => ({
                     ...tournament,
                     id: tournament.id || index + 1
                 }));
-                console.log('Processed schedule data:', scheduleWithIds); // Add this log
                 setSchedule(scheduleWithIds);
+                setRankings(rankingsRes.data.rankings);
+                
+                // Convert selections array to object for easier lookup
+                const selectionsObj = {};
+                selectionsRes.data.forEach(item => {
+                    selectionsObj[item.event] = {
+                        selection: item.selection,
+                        is_locked: item.is_locked
+                    };
+                });
+                setSelections(selectionsObj);
+                setLoading(false);
                 updateActiveSchedule(scheduleWithIds);
-            } catch (error) {
-                console.error('Error fetching schedule:', error);
+            } catch (err) {
+                console.error('Error loading data:', err);
+                setError('Failed to load data');
+                setLoading(false);
                 setSchedule([]);
                 setActiveSchedule([]);
             }
         };
-        fetchSchedule();
+
+        fetchData();
     }, []);
 
-    // Handle selected golfer from GolferTable
+    // Handle selected golfer updates
     useEffect(() => {
         if (selectedGolfer && activeSchedule.length > 0) {
             console.log('Selected golfer update:', {
@@ -72,8 +98,8 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
         if (index === 0) return [];
     
         // Use ranked golfers for autocomplete for all other boxes
-        const golferNames = Array.isArray(rankedGolfers) 
-            ? rankedGolfers.map(golfer => {
+        const golferNames = Array.isArray(propRankedGolfers) 
+            ? propRankedGolfers.map(golfer => {
                 if (!golfer) return null;
                 
                 const name = golfer.Player || golfer.player || golfer.Name || golfer.name;
@@ -115,49 +141,31 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
         }
     };
 
-    const handleConfirmSelection = async (tournament, index) => {
+    const handleSelectionChange = async (value, event) => {
         try {
-            const isFirstTournament = index === 0;
-            const eventName = tournament.Event || tournament.event;
-            
-            // Check if golfer is already used
-            if (isGolferUsed(tempSelection)) {
-                setErrorMessage('This Golfer has already been used in a previous tournament. Please select a different one.');
+            // Check if tournament is locked
+            if (selections[event]?.is_locked) {
+                message.error('This tournament is locked and cannot be modified');
                 return;
             }
 
-            console.log('Confirming selection:', {
-                event: eventName,
-                playerName: tempSelection,
-                isLocked: isFirstTournament && isLocked,
-                index: index,
-                isFirstTournament: isFirstTournament,
-                globalIsLocked: isLocked
+            await axios.post(`${process.env.REACT_APP_API_URL}/api/selections/save`, {
+                event: event,
+                selection: value
             });
 
-            const response = await axios.post('/api/selections/save', {
-                event: eventName,
-                playerName: tempSelection,
-                isLocked: isFirstTournament && isLocked
-            });
-
-            console.log('Save response:', response.data);
-            
-            // Update local state
             setSelections(prev => ({
                 ...prev,
-                [eventName]: tempSelection
+                [event]: {
+                    ...prev[event],
+                    selection: value
+                }
             }));
-            
-            // Clear temporary states
-            setTempSelection(null);
-            setActiveBoxId(null);
-            setSuggestions([]);
-            setActiveSuggestionBox(null);
-            setErrorMessage('');
+
+            message.success('Selection saved successfully');
         } catch (error) {
             console.error('Error saving selection:', error);
-            setErrorMessage('Failed to save selection');
+            message.error('Failed to save selection');
         }
     };
 
@@ -171,24 +179,26 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
 
     const renderSelectionInput = (tournament, index) => {
         const isFirstTournament = index === 0;
-        const isDisabled = isLocked && isFirstTournament;
+        const tournamentDate = new Date(tournament.StartDate);
+        const now = new Date();
+        const isLocked = tournamentDate <= now;
         const eventName = tournament.Event || tournament.event;
         const currentValue = activeBoxId === tournament.id
             ? tempSelection || ''
-            : selections[eventName] || '';
+            : selections[eventName]?.selection || '';
     
         return (
-            <div className={`selection-container ${isLocked && index === 0 ? 'locked' : ''}`}>
+            <div className={`selection-container ${isLocked ? 'locked' : ''}`}>
                 <div className="selection-input-wrapper">
                     <input
                         type="text"
                         className={`selection-input ${errorMessage && activeBoxId === tournament.id ? 'error' : ''}`}
-                        placeholder={isDisabled ? "Locked" : "Enter selection..."}
+                        placeholder={isLocked ? "Locked" : "Enter selection..."}
                         value={currentValue}
                         onChange={(e) => handleInputChange(tournament.id, e.target.value, index)}
-                        disabled={isDisabled}
+                        disabled={isLocked}
                     />
-                    {activeSuggestionBox === tournament.id && suggestions.length > 0 && (
+                    {activeSuggestionBox === tournament.id && suggestions.length > 0 && !isLocked && (
                         <div className="suggestions-dropdown">
                             {suggestions.map((suggestion, i) => (
                                 <div
@@ -202,12 +212,12 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
                         </div>
                     )}
                 </div>
-                {activeBoxId === tournament.id && (
+                {activeBoxId === tournament.id && !isLocked && (
                     <>
                         <div className="action-buttons">
                             <button 
                                 className="action-button confirm-button"
-                                onClick={() => handleConfirmSelection(tournament, index)}
+                                onClick={() => handleSelectionChange(tempSelection, eventName)}
                                 title="Confirm selection"
                             >
                                 <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
@@ -238,12 +248,12 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
     // Function to filter and rotate tournaments based on current date
     const updateActiveSchedule = (fullSchedule) => {
         const now = new Date();
-        console.log('Updating active schedule. Current date:', now); // Add this log
+        console.log('Updating active schedule. Current date:', now);
         
         // Filter out past tournaments and sort remaining ones
         const upcomingTournaments = fullSchedule.filter(tournament => {
             const tournamentDate = new Date(tournament.StartDate);
-            console.log('Tournament:', tournament.Event, 'Date:', tournamentDate); // Add this log
+            console.log('Tournament:', tournament.Event, 'Date:', tournamentDate);
             return tournamentDate >= now;
         }).sort((a, b) => {
             return new Date(a.StartDate) - new Date(b.StartDate);
@@ -258,11 +268,11 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
         const loadSavedSelections = async () => {
             try {
                 console.log('Loading saved selections...');
-                const response = await axios.get('/api/selections');
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/selections`);
                 console.log('Received selections:', response.data);
                 
                 const savedSelections = response.data.reduce((acc, selection) => {
-                    acc[selection.event] = selection.player_name;
+                    acc[selection.event] = selection.selection;
                     return acc;
                 }, {});
                 console.log('Processed selections:', savedSelections);
@@ -291,8 +301,6 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
         return () => clearInterval(interval);
     }, [schedule]);
 
-
-
     // Add this effect to update the next tournament date
     useEffect(() => {
         const updateNextTournamentDate = () => {
@@ -308,8 +316,16 @@ function Schedule({ selectedGolfer, golfers, rankedGolfers, isLocked, usedGolfer
         return () => clearInterval(interval);
     }, []);
 
-    if (schedule.length === 0) {
+    if (loading) {
         return <div className="schedule-container">Loading schedule...</div>;
+    }
+
+    if (error) {
+        return <div className="schedule-container">Error: {error}</div>;
+    }
+
+    if (schedule.length === 0) {
+        return <div className="schedule-container">No schedule data available</div>;
     }
 
     return (
