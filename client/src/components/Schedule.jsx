@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Schedule.css';
-import { message } from 'antd';
+import { toast } from 'react-hot-toast';
 
 // Add this utility function
 const getNextThursdayDate = () => {
@@ -22,9 +22,7 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
     const [activeBoxId, setActiveBoxId] = useState(null);
     const [activeSuggestionBox, setActiveSuggestionBox] = useState(null);
     const [activeSchedule, setActiveSchedule] = useState([]);
-    const [nextTournamentDate, setNextTournamentDate] = useState(getNextThursdayDate());
     const [errorMessage, setErrorMessage] = useState('');
-    const [rankings, setRankings] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -46,7 +44,6 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
                     id: tournament.id || index + 1
                 }));
                 setSchedule(scheduleWithIds);
-                setRankings(rankingsRes.data.rankings);
                 
                 // Convert selections array to object for easier lookup
                 const selectionsObj = {};
@@ -143,29 +140,43 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
 
     const handleSelectionChange = async (value, event) => {
         try {
-            // Check if tournament is locked
-            if (selections[event]?.is_locked) {
-                message.error('This tournament is locked and cannot be modified');
-                return;
-            }
-
-            await axios.post(`${process.env.REACT_APP_API_URL}/api/selections/save`, {
-                event: event,
-                selection: value
-            });
-
-            setSelections(prev => ({
-                ...prev,
-                [event]: {
-                    ...prev[event],
-                    selection: value
+            console.log('Sending selection:', { value, event });
+            const token = localStorage.getItem('token'); // Get the token from localStorage
+            const response = await axios.post(
+                `${process.env.REACT_APP_API_URL}/api/selections/save`,
+                { event, selection: value, isLocked: false },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 }
-            }));
+            );
 
-            message.success('Selection saved successfully');
+            if (response.data.success) {
+                // Update the selections state
+                setSelections(prev => ({
+                    ...prev,
+                    [event]: {
+                        selection: value,
+                        is_locked: false
+                    }
+                }));
+                // Clear the temporary selection and active box
+                setTempSelection(null);
+                setActiveBoxId(null);
+                setErrorMessage('');
+                toast.success('Selection saved successfully!');
+            } else {
+                toast.error('Failed to save selection');
+            }
         } catch (error) {
             console.error('Error saving selection:', error);
-            message.error('Failed to save selection');
+            if (error.response?.data?.error) {
+                toast.error(error.response.data.error);
+            } else {
+                toast.error('Failed to save selection');
+            }
         }
     };
 
@@ -178,10 +189,13 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
     };
 
     const renderSelectionInput = (tournament, index) => {
-        const isFirstTournament = index === 0;
         const tournamentDate = new Date(tournament.StartDate);
         const now = new Date();
-        const isLocked = tournamentDate <= now;
+        // Set both dates to start of day for comparison
+        tournamentDate.setHours(0, 0, 0, 0);
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        const isLocked = tournamentDate < today;
         const eventName = tournament.Event || tournament.event;
         const currentValue = activeBoxId === tournament.id
             ? tempSelection || ''
@@ -253,8 +267,13 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
         // Filter out past tournaments and sort remaining ones
         const upcomingTournaments = fullSchedule.filter(tournament => {
             const tournamentDate = new Date(tournament.StartDate);
+            // Set tournament date to start of day for comparison
+            tournamentDate.setHours(0, 0, 0, 0);
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            
             console.log('Tournament:', tournament.Event, 'Date:', tournamentDate);
-            return tournamentDate >= now;
+            return tournamentDate >= today;
         }).sort((a, b) => {
             return new Date(a.StartDate) - new Date(b.StartDate);
         });
@@ -300,21 +319,6 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
     
         return () => clearInterval(interval);
     }, [schedule]);
-
-    // Add this effect to update the next tournament date
-    useEffect(() => {
-        const updateNextTournamentDate = () => {
-            setNextTournamentDate(getNextThursdayDate());
-        };
-
-        // Update immediately
-        updateNextTournamentDate();
-
-        // Set up daily check
-        const interval = setInterval(updateNextTournamentDate, 86400000); // Check every 24 hours
-
-        return () => clearInterval(interval);
-    }, []);
 
     if (loading) {
         return <div className="schedule-container">Loading schedule...</div>;

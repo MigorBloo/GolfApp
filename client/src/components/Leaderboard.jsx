@@ -7,18 +7,28 @@ function Leaderboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchLeaderboardData = async () => {
+        const fetchData = async () => {
             try {
-                const response = await axios.get('/api/leaderboard');
-                setLeaderboardData(response.data);
+                // Fetch leaderboard data
+                const leaderboardResponse = await axios.get('/api/leaderboard');
+                // Sort the data by earnings in descending order
+                const sortedData = leaderboardResponse.data.sort((a, b) => 
+                    (b['Total Prize Money'] || 0) - (a['Total Prize Money'] || 0)
+                );
+                // Add rank based on sorted position
+                const rankedData = sortedData.map((row, index) => ({
+                    ...row,
+                    Rank: index + 1
+                }));
+                setLeaderboardData(rankedData);
                 setLoading(false);
             } catch (error) {
-                console.error('Error fetching leaderboard data:', error);
+                console.error('Error fetching data:', error);
                 setLoading(false);
             }
         };
 
-        fetchLeaderboardData();
+        fetchData();
     }, []);
 
     if (loading) return <div className="leaderboard-container">Loading...</div>;
@@ -31,7 +41,7 @@ function Leaderboard() {
                     <thead>
                         <tr>
                             <th>Rank</th>
-                            <th>Team</th>
+                            <th>Player</th>
                             <th>Earnings</th>
                             <th>Winners</th>
                             <th>Top 10s</th>  
@@ -39,10 +49,13 @@ function Leaderboard() {
                     </thead>
                     <tbody>
                         {leaderboardData.map((row, index) => (
-                            <tr key={index}>
-                                <td>{row.Rank || '-'}</td>
-                                <td>{row['Total Prize Money'] ? 
-                                    `$${row['Total Prize Money'].toLocaleString()}` : '-'}</td>
+                            <tr key={index} className={index === 0 ? 'leader' : ''}>
+                                <td>{row.Rank}</td>
+                                <td>{row.username || '-'}</td>
+                                <td className="earnings">
+                                    {row['Total Prize Money'] ? 
+                                        `$${row['Total Prize Money'].toLocaleString()}` : '-'}
+                                </td>
                                 <td>{row.Winners || '-'}</td>
                                 <td>{row.Top10s || '-'}</td>
                             </tr>

@@ -6,8 +6,10 @@ DROP TABLE IF EXISTS users CASCADE;
 -- Create users table first (before other tables)
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    profile_image VARCHAR(255) DEFAULT 'GolfBall.png',
     is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -26,7 +28,7 @@ CREATE TABLE tournament_selections (
 -- Create score_tracker table with updated column definitions
 CREATE TABLE score_tracker (
     id SERIAL PRIMARY KEY,
-    event VARCHAR(255) NOT NULL,
+    event VARCHAR(255) NOT NULL UNIQUE,
     selection VARCHAR(255),
     result VARCHAR(50),  -- Allows for T6, MC, etc.
     earnings NUMERIC(12, 0),  -- Changed to 0 decimal places

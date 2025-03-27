@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import Snapshot from './components/Snapshot';
 import ScoreTracker from './components/ScoreTracker';
@@ -8,9 +9,10 @@ import Schedule from './components/Schedule';
 import GolferRankings from './components/GolferRankings';
 import Leaderboard from './components/Leaderboard';
 import Header from './components/Header';
+import Profile from './components/Profile';
 import './styles.css';
 
-function App() {
+function MainContent() {
     const [golfers, setGolfers] = useState([]);
     const [eventInfo, setEventInfo] = useState({
         event_name: '',
@@ -25,6 +27,8 @@ function App() {
     const [isEventLocked, setIsEventLocked] = useState(false);
     const [rankingsError, setRankingsError] = useState(null);
     const [scoreTrackerData, setScoreTrackerData] = useState([]);
+    const [username, setUsername] = useState('');
+    const [profileImage, setProfileImage] = useState('GolfBall.png');
     const golfersPerPage = 10;
 
     const handleGolferSelect = (golfer) => {
@@ -144,56 +148,87 @@ function App() {
         console.log('Current rankedGolfers state:', rankedGolfers);
     }, [rankedGolfers]);
 
-    return (
-        <div className="app">
-            <Header />
-            <div className="app-container">
-                <div className="top-grid">
-                    <div className="snapshot-section">
-                        <Snapshot />
-                    </div>
-                    <div className="leaderboard-section">
-                        <Leaderboard />
-                    </div>
-                    <div className="score-tracker-section">
-                        <ScoreTracker data={scoreTrackerData} />
-                    </div>
-                </div>
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get('http://localhost:8001/api/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                setUsername(response.data.username);
+                setProfileImage(`/images/${response.data.profile_image || 'GolfBall.png'}`);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                setProfileImage('/GolfBall.png');
+            }
+        };
 
-                <div className="main-grid">
-                    <div className="rankings-section">
-                        <GolferRankings usedGolfers={scoreTrackerData.map(entry => entry.selection)} />
-                    </div>
-                    <div className="golfer-table-section">
-                        <GolferTable 
-                            golfers={golfersToDisplay}
-                            eventInfo={eventInfo}
-                            sortOption={sortOption}
-                            onSortChange={handleSort}
-                            onGolferSelect={handleGolferSelect}
-                            onEventLockChange={handleEventLockStatus}
-                            isLocked={isEventLocked}
-                            usedGolfers={scoreTrackerData.map(entry => entry.selection)}
-                        />
-                        <Pagination 
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                            isLocked={isEventLocked}
-                        />
-                    </div>
-                    <div className="schedule-section">
-                        <Schedule 
-                            selectedGolfer={selectedGolfer}
-                            golfers={golfersToDisplay}
-                            rankedGolfers={rankedGolfers}
-                            isLocked={isEventLocked}
-                            usedGolfers={scoreTrackerData.map(entry => entry.selection)}
-                        />
-                    </div>
+        fetchUserData();
+    }, []);
+
+    return (
+        <>
+            <div className="top-grid">
+                <div className="snapshot-section">
+                    <Snapshot username={username} profileImage={profileImage} />
+                </div>
+                <div className="leaderboard-section">
+                    <Leaderboard />
+                </div>
+                <div className="score-tracker-section">
+                    <ScoreTracker data={scoreTrackerData} />
                 </div>
             </div>
-        </div>
+
+            <div className="main-grid">
+                <div className="rankings-section">
+                    <GolferRankings usedGolfers={scoreTrackerData.map(entry => entry.selection)} />
+                </div>
+                <div className="golfer-table-section">
+                    <GolferTable 
+                        golfers={golfersToDisplay}
+                        eventInfo={eventInfo}
+                        sortOption={sortOption}
+                        onSortChange={handleSort}
+                        onGolferSelect={handleGolferSelect}
+                        onEventLockChange={handleEventLockStatus}
+                        isLocked={isEventLocked}
+                        usedGolfers={scoreTrackerData.map(entry => entry.selection)}
+                    />
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        isLocked={isEventLocked}
+                    />
+                </div>
+                <div className="schedule-section">
+                    <Schedule 
+                        selectedGolfer={selectedGolfer}
+                        golfers={golfersToDisplay}
+                        rankedGolfers={rankedGolfers}
+                        isLocked={isEventLocked}
+                        usedGolfers={scoreTrackerData.map(entry => entry.selection)}
+                    />
+                </div>
+            </div>
+        </>
+    );
+}
+
+function App() {
+    return (
+        <Router>
+            <div className="app">
+                <Header />
+                <Routes>
+                    <Route path="/" element={<MainContent />} />
+                    <Route path="/profile" element={<Profile />} />
+                </Routes>
+            </div>
+        </Router>
     );
 }
 

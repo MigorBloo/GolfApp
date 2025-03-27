@@ -282,20 +282,39 @@ app.get('/api/test-insert', async (req, res) => {
     }
 });
 
+// Middleware to verify JWT token
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+
+    try {
+        const verified = jwt.verify(token, JWT_SECRET);
+        req.user = verified;
+        next();
+    } catch (error) {
+        res.status(400).json({ error: 'Invalid token.' });
+    }
+};
+
 // Save selection
-app.post('/api/selections/save', async (req, res) => {
-    const { event, playerName, isLocked } = req.body;
+app.post('/api/selections/save', authenticateToken, async (req, res) => {
+    const { event, selection, isLocked } = req.body;
+    const userId = req.user.id;
     const client = await pool.connect();
     
     try {
         await client.query('BEGIN');
 
-        console.log('Save endpoint received:', { event, playerName, isLocked });
+        console.log('Save endpoint received:', { event, selection, isLocked, userId });
 
         // First check if the golfer is already in score_tracker
         const usedGolferCheck = await client.query(`
             SELECT event FROM score_tracker WHERE selection = $1
-        `, [playerName]);
+        `, [selection]);
 
         if (usedGolferCheck.rows.length > 0) {
             await client.query('ROLLBACK');
@@ -305,14 +324,31 @@ app.post('/api/selections/save', async (req, res) => {
             });
         }
 
-        // Save to tournament_selections
-        const tournamentResult = await client.query(`
-            INSERT INTO tournament_selections (event, selection, selection_date, is_locked)
-            VALUES ($1, $2, NOW(), $3)
-            ON CONFLICT (event) DO UPDATE
-            SET selection = $2, selection_date = NOW(), is_locked = $3
-            RETURNING *
-        `, [event, playerName, isLocked]);
+        // Check if event already exists in tournament_selections
+        const existingEvent = await client.query(`
+            SELECT * FROM tournament_selections WHERE event = $1
+        `, [event]);
+
+        let tournamentResult;
+        if (existingEvent.rows.length > 0) {
+            // Update existing event
+            tournamentResult = await client.query(`
+                UPDATE tournament_selections 
+                SET selection = $1, 
+                    selection_date = NOW(), 
+                    is_locked = $2,
+                    user_id = $3
+                WHERE event = $4
+                RETURNING *
+            `, [selection, isLocked, userId, event]);
+        } else {
+            // Insert new event
+            tournamentResult = await client.query(`
+                INSERT INTO tournament_selections (event, selection, selection_date, is_locked, user_id)
+                VALUES ($1, $2, NOW(), $3, $4)
+                RETURNING *
+            `, [event, selection, isLocked, userId]);
+        }
 
         console.log('Tournament selection saved:', tournamentResult.rows[0]);
 
@@ -320,11 +356,12 @@ app.post('/api/selections/save', async (req, res) => {
         if (isLocked) {
             console.log('Updating score_tracker for locked selection');
             await client.query(`
-                INSERT INTO score_tracker (event, selection)
-                VALUES ($1, $2)
+                INSERT INTO score_tracker (event, selection, user_id)
+                VALUES ($1, $2, $3)
                 ON CONFLICT (event) DO UPDATE
-                SET selection = $2
-            `, [event, playerName]);
+                SET selection = EXCLUDED.selection,
+                    user_id = EXCLUDED.user_id
+            `, [event, selection, userId]);
         }
 
         await client.query('COMMIT');
@@ -509,24 +546,6 @@ app.get('/api/update-weekly-results', async (req, res) => {
     }
 });
 
-// Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'Access denied. No token provided.' });
-    }
-
-    try {
-        const verified = jwt.verify(token, JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (error) {
-        res.status(400).json({ error: 'Invalid token.' });
-    }
-};
-
 // User registration endpoint
 app.post('/api/register', async (req, res) => {
     const { email, password } = req.body;
@@ -611,15 +630,23 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid password' });
         }
 
-        // Create and assign token
-        const token = jwt.sign({ id: user.id }, JWT_SECRET);
+        // Create and assign token with complete user info
+        const token = jwt.sign(
+            { 
+                id: user.id,
+                email: user.email,
+                isAdmin: user.is_admin 
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
         res.json({
             token,
             user: {
                 id: user.id,
-                username: user.username,
-                email: user.email
+                email: user.email,
+                isAdmin: user.is_admin
             }
         });
     } catch (error) {
@@ -916,5 +943,73 @@ app.post('/api/tournament/lock', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// Profile endpoints
+app.get('/api/users/profile', authenticateToken, async (req, res) => {
+    try {
+        console.log('Profile endpoint called with user:', req.user);
+        const userId = req.user.userId;
+        console.log('Fetching profile for user ID:', userId);
+        
+        const result = await pool.query(
+            'SELECT email, username, profile_image FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        console.log('Query result:', result.rows);
+        
+        if (result.rows.length === 0) {
+            console.log('No user found with ID:', userId);
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({ message: 'Error fetching profile data' });
+    }
+});
+
+app.put('/api/users/username', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { username } = req.body;
+        
+        const result = await pool.query(
+            'UPDATE users SET username = $1 WHERE id = $2 RETURNING username',
+            [username, userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json({ username: result.rows[0].username });
+    } catch (error) {
+        console.error('Error updating username:', error);
+        res.status(500).json({ message: 'Error updating username' });
+    }
+});
+
+app.put('/api/users/profile-image', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { profile_image } = req.body;
+        
+        const result = await pool.query(
+            'UPDATE users SET profile_image = $1 WHERE id = $2 RETURNING profile_image',
+            [profile_image, userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json({ profile_image: result.rows[0].profile_image });
+    } catch (error) {
+        console.error('Error updating profile image:', error);
+        res.status(500).json({ message: 'Error updating profile image' });
+    }
 });
 

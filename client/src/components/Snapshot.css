@@ -1,47 +1,79 @@
 .snapshot-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 15px;
-    background-color: #f8f9fa;
+    background-color: #ffffff;
     border-radius: 8px;
+    padding: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .snapshot-container h2 {
-    margin-bottom: 15px;
+    margin: 0 0 15px 0;
     color: #333;
-    font-size: 1.2rem;
+    text-align: center;
 }
 
-.snapshot-table-container {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    overflow: hidden;
+.profile-image-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.profile-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #007bff;
 }
 
 .snapshot-table {
     width: 100%;
     border-collapse: collapse;
-    background-color: white;
-    font-size: 0.9rem;
 }
 
-.snapshot-table th,
 .snapshot-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
 }
 
-.snapshot-table th {
-    background-color: #e9ecef;
+.label-cell {
     font-weight: 600;
-    color: #495057;
+    color: #666;
 }
 
-.snapshot-table tr:hover {
-    background-color: #f5f5f5;
+.value-cell {
+    text-align: right;
+    color: #333;
+}
+
+.snapshot-table tr:last-child td {
+    border-bottom: none;
+}
+
+.snapshot-container table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 16px;
+}
+
+.snapshot-container td {
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.snapshot-container .label-cell {
+    font-weight: 500;
+    color: #333;
+    width: 60%;
+}
+
+.snapshot-container .value-cell {
+    color: #666;
+    width: 20%;
+    text-align: right;
+}
+
+.snapshot-container tr:hover {
+    background-color: #f9f9f9;
 }
 
 .snapshot-table .leader {
@@ -62,9 +94,8 @@
 
 /* Responsive design */
 @media (max-width: 600px) {
-    .snapshot-table th,
-    .snapshot-table td {
-        padding: 8px;
+    .snapshot-container td {
+        padding: 6px 8px;
         font-size: 0.8rem;
     }
 }

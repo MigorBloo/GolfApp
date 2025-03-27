@@ -1,68 +1,111 @@
 .leaderboard-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
     padding: 15px;
-    background-color: #f8f9fa;
+    background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .leaderboard-container h2 {
     margin-bottom: 15px;
     color: #333;
     font-size: 1.2rem;
+    text-align: center;
 }
 
-.leaderboard-table-container {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    overflow: hidden;
+.leaderboard-table-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100% - 100px);
 }
 
 .leaderboard-table {
     width: 100%;
     border-collapse: collapse;
-    background-color: white;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .leaderboard-table th,
 .leaderboard-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 8px 4px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
 }
 
 .leaderboard-table th {
-    background-color: #e9ecef;
+    background-color: #f5f5f5;
     font-weight: 600;
-    color: #495057;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 0.8rem;
 }
 
 .leaderboard-table tr:hover {
-    background-color: #f5f5f5;
+    background-color: #f9f9f9;
 }
 
 .leaderboard-table .leader {
-    background-color: #fff3cd;
+    background-color: #f0f7ff;
 }
 
 .leaderboard-table .leader:hover {
-    background-color: #ffeeba;
+    background-color: #e6f0ff;
 }
 
 .leaderboard-table td.earnings {
     font-weight: 500;
+    color: #2c5282;
+}
+
+/* Column width specifications */
+.leaderboard-table th:nth-child(1),
+.leaderboard-table td:nth-child(1) {
+    width: 15%; /* Rank column */
+}
+
+.leaderboard-table th:nth-child(2),
+.leaderboard-table td:nth-child(2) {
+    width: 35%; /* Player column */
+}
+
+.leaderboard-table th:nth-child(3),
+.leaderboard-table td:nth-child(3) {
+    width: 25%; /* Earnings column */
+}
+
+.leaderboard-table th:nth-child(4),
+.leaderboard-table td:nth-child(4),
+.leaderboard-table th:nth-child(5),
+.leaderboard-table td:nth-child(5) {
+    width: 12.5%; /* Winners and Top 10s columns */
 }
 
 /* Responsive design */
 @media (max-width: 600px) {
+    .leaderboard-table {
+        font-size: 0.75rem;
+    }
+    
     .leaderboard-table th,
     .leaderboard-table td {
-        padding: 8px;
-        font-size: 0.8rem;
+        padding: 6px 3px;
     }
+}
+
+/* Fixed bottom row styles */
+.leaderboard-fixed-row {
+    margin-top: 10px;
+    border-top: 2px solid #ddd;
+    background-color: #f8f9fa;
+    padding: 12px;
+    text-align: center;
+    font-weight: 500;
+    color: #2c5282;
 }
 
 /* Add specific column styling */
@@ -71,7 +114,7 @@
 }
 
 .leaderboard-table td:nth-child(2) {
-    text-align: right; /* Align prize money right */
+    text-align: center; 
 }
 
 .leaderboard-table td:nth-child(3),
