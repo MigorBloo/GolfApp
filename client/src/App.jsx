@@ -10,29 +10,60 @@ import GolferRankings from './components/GolferRankings';
 import Leaderboard from './components/Leaderboard';
 import Header from './components/Header';
 import Profile from './components/Profile';
+import Login from './components/Login';
+import Register from './components/Register';
+import ProtectedRoute from './components/ProtectedRoute';
 import './styles.css';
 
-function MainContent() {
+// Configure axios defaults
+axios.defaults.baseURL = 'http://localhost:8001';
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+// Add request interceptor to add auth token
+axios.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+function MainContent({ profileImage, setProfileImage }) {
     const [golfers, setGolfers] = useState([]);
     const [eventInfo, setEventInfo] = useState({
         event_name: '',
         course: ''
     });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOption, setSortOption] = useState('dkSalary');
     const [selectedGolfer, setSelectedGolfer] = useState(null);
     const [rankedGolfers, setRankedGolfers] = useState([]);
     const [isEventLocked, setIsEventLocked] = useState(false);
-    const [rankingsError, setRankingsError] = useState(null);
     const [scoreTrackerData, setScoreTrackerData] = useState([]);
     const [username, setUsername] = useState('');
-    const [profileImage, setProfileImage] = useState('GolfBall.png');
     const golfersPerPage = 10;
 
-    const handleGolferSelect = (golfer) => {
+    const handleGolferSelect = async (golfer) => {
         setSelectedGolfer(golfer);
+        if (golfer) {
+            try {
+                // Save to tournament_selections table only
+                await axios.post('/api/tournament-selections', {
+                    event: eventInfo.event_name,
+                    selection: golfer
+                });
+                // Refresh the tournament selections data
+                fetchTournamentSelections();
+                setSelectedGolfer(null); // Clear the selection after saving
+            } catch (error) {
+                console.error('Error saving selection:', error);
+            }
+        }
     };
 
     const handleSort = (option) => {
@@ -46,28 +77,31 @@ function MainContent() {
     const fetchScoreTrackerData = async () => {
         try {
             const response = await axios.get('/api/scoretracker/entries');
-            setScoreTrackerData(response.data);
+            // Add is_locked property to each entry
+            const data = response.data.map(entry => ({
+                ...entry,
+                is_locked: entry.is_locked || false
+            }));
+            setScoreTrackerData(data);
         } catch (error) {
             console.error('Error fetching score tracker data:', error);
         }
     };
 
-    const handleEventLockStatus = (locked) => {
-        setIsEventLocked(locked);
-        if (locked && selectedGolfer) {
-            updateScoreTracker(selectedGolfer);
-        }
-    };
-
-    const updateScoreTracker = async (golferName) => {
-        try {
-            await axios.post('/api/scoretracker/update', {
-                golfer: golferName,
-                tournament: 1 // or however you identify the current tournament
-            });
-            fetchScoreTrackerData();
-        } catch (error) {
-            console.error('Error updating ScoreTracker:', error);
+    const handleEventLockStatus = async (isLocked) => {
+        setIsEventLocked(isLocked);
+        if (isLocked) {
+            try {
+                // Call the new endpoint to lock the tournament and move selection to score tracker
+                await axios.post('/api/tournament-selections/lock', {
+                    event: eventInfo.event_name
+                });
+                // Refresh both tournament selections and score tracker data
+                fetchTournamentSelections();
+                fetchScoreTrackerData();
+            } catch (error) {
+                console.error('Error locking tournament:', error);
+            }
         }
     };
 
@@ -81,9 +115,18 @@ function MainContent() {
     const golfersToDisplay = golfers.slice(indexOfFirstGolfer, indexOfLastGolfer);
     const totalPages = Math.ceil(golfers.length / golfersPerPage);
 
+    const fetchTournamentSelections = async () => {
+        try {
+            const response = await axios.get('/api/tournament-selections');
+            // Update any UI state if needed based on the selections
+            console.log('Tournament selections:', response.data);
+        } catch (error) {
+            console.error('Error fetching tournament selections:', error);
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
             try {
                 console.log('Starting axios request...');
                 const response = await axios.get('/api/golfers');
@@ -109,9 +152,6 @@ function MainContent() {
                 }
             } catch (error) {
                 console.error('Error details:', error);
-                setError(error);
-            } finally {
-                setLoading(false);
             }
         };
     
@@ -133,11 +173,9 @@ function MainContent() {
                     console.log('Rankings data set successfully:', rankingsData);
                 } else {
                     console.error('Rankings data is empty or invalid:', response.data);
-                    setRankingsError('No rankings data available');
                 }
             } catch (error) {
                 console.error('Error fetching rankings:', error);
-                setRankingsError(error.message);
             }
         };
     
@@ -151,22 +189,16 @@ function MainContent() {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:8001/api/users/profile', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await axios.get('/api/users/profile');
                 setUsername(response.data.username);
-                setProfileImage(`/images/${response.data.profile_image || 'GolfBall.png'}`);
+                setProfileImage(response.data.profile_image || 'GolfBall.png');
             } catch (error) {
                 console.error('Error fetching user data:', error);
-                setProfileImage('/GolfBall.png');
             }
         };
 
         fetchUserData();
-    }, []);
+    }, [setProfileImage]);
 
     return (
         <>
@@ -184,7 +216,7 @@ function MainContent() {
 
             <div className="main-grid">
                 <div className="rankings-section">
-                    <GolferRankings usedGolfers={scoreTrackerData.map(entry => entry.selection)} />
+                    <GolferRankings usedGolfers={scoreTrackerData.filter(entry => entry.is_locked).map(entry => entry.selection)} />
                 </div>
                 <div className="golfer-table-section">
                     <GolferTable 
@@ -195,7 +227,7 @@ function MainContent() {
                         onGolferSelect={handleGolferSelect}
                         onEventLockChange={handleEventLockStatus}
                         isLocked={isEventLocked}
-                        usedGolfers={scoreTrackerData.map(entry => entry.selection)}
+                        usedGolfers={scoreTrackerData.filter(entry => entry.is_locked).map(entry => entry.selection)}
                     />
                     <Pagination 
                         currentPage={currentPage}
@@ -210,7 +242,7 @@ function MainContent() {
                         golfers={golfersToDisplay}
                         rankedGolfers={rankedGolfers}
                         isLocked={isEventLocked}
-                        usedGolfers={scoreTrackerData.map(entry => entry.selection)}
+                        usedGolfers={scoreTrackerData.filter(entry => entry.is_locked).map(entry => entry.selection)}
                     />
                 </div>
             </div>
@@ -219,13 +251,47 @@ function MainContent() {
 }
 
 function App() {
+    const [profileImage, setProfileImage] = useState('GolfBall.png');
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const response = await axios.get('/api/users/profile');
+                    setProfileImage(response.data.profile_image || 'GolfBall.png');
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
     return (
         <Router>
             <div className="app">
                 <Header />
                 <Routes>
-                    <Route path="/" element={<MainContent />} />
-                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route 
+                        path="/" 
+                        element={
+                            <ProtectedRoute>
+                                <MainContent profileImage={profileImage} setProfileImage={setProfileImage} />
+                            </ProtectedRoute>
+                        } 
+                    />
+                    <Route 
+                        path="/profile" 
+                        element={
+                            <ProtectedRoute>
+                                <Profile onProfileImageChange={setProfileImage} />
+                            </ProtectedRoute>
+                        } 
+                    />
                 </Routes>
             </div>
         </Router>

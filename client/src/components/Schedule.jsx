@@ -29,9 +29,9 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
             try {
                 console.log('Fetching schedule data...');
                 const [scheduleRes, rankingsRes, selectionsRes] = await Promise.all([
-                    axios.get(`${process.env.REACT_APP_API_URL}/api/schedule`),
-                    axios.get(`${process.env.REACT_APP_API_URL}/api/rankings`),
-                    axios.get(`${process.env.REACT_APP_API_URL}/api/tournament-selections`)
+                    axios.get('/api/schedule'),
+                    axios.get('/api/rankings'),
+                    axios.get('/api/tournament-selections')
                 ]);
 
                 console.log('Schedule response:', scheduleRes.data);
@@ -141,16 +141,9 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
     const handleSelectionChange = async (value, event) => {
         try {
             console.log('Sending selection:', { value, event });
-            const token = localStorage.getItem('token'); // Get the token from localStorage
             const response = await axios.post(
-                `${process.env.REACT_APP_API_URL}/api/selections/save`,
-                { event, selection: value, isLocked: false },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
+                '/api/selections/save',
+                { event, selection: value, isLocked: false }
             );
 
             if (response.data.success) {
@@ -287,7 +280,7 @@ const Schedule = ({ selectedGolfer, golfers, rankedGolfers: propRankedGolfers, i
         const loadSavedSelections = async () => {
             try {
                 console.log('Loading saved selections...');
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/selections`);
+                const response = await axios.get('/api/selections');
                 console.log('Received selections:', response.data);
                 
                 const savedSelections = response.data.reduce((acc, selection) => {

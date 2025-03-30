@@ -37,13 +37,29 @@ pool.on('error', (err) => {
 // Test the connection
 const testConnection = async () => {
     try {
+        console.log('Attempting to connect to database...');
+        console.log('Connection details:', {
+            host: process.env.DB_HOST,
+            database: process.env.DB_NAME,
+            user: process.env.DB_USER,
+            port: process.env.DB_PORT
+        });
+        
         const client = await pool.connect();
+        console.log('Connected to database, executing test query...');
         const result = await client.query('SELECT NOW()');
         client.release();
         console.log('Database connection successful:', result.rows[0]);
         return true;
     } catch (err) {
         console.error('Failed to connect to database:', err.message);
+        console.error('Error details:', {
+            code: err.code,
+            errno: err.errno,
+            syscall: err.syscall,
+            hostname: err.hostname,
+            stack: err.stack
+        });
         throw err;
     }
 };

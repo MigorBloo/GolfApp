@@ -1,92 +1,105 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Register.css';
+import './Login.css';
 
-const Register = () => {
+function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [profileImage, setProfileImage] = useState('GolfBall.png');
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    const profileImages = [
+        { value: 'GolfBall.png', label: 'Golf Ball', image: '/images/GolfBall.png' },
+        { value: 'GolfClub.png', label: 'Golf Club', image: '/images/GolfClub.png' },
+        { value: 'GolfFlag.png', label: 'Golf Flag', image: '/images/GolfFlag.png' }
+    ];
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-
-        // Basic validation
-        if (!email || !password || !confirmPassword) {
-            setError('All fields are required');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
 
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/register`, {
+            const response = await axios.post('http://localhost:8001/api/register', {
                 email,
-                password
+                password,
+                username,
+                profile_image: profileImage
             });
 
             if (response.data.token) {
-                // Store the token
                 localStorage.setItem('token', response.data.token);
-                // Redirect to schedule page
-                navigate('/schedule');
+                navigate('/');
             }
         } catch (error) {
-            setError(error.response?.data?.error || 'Registration failed');
+            setError(error.response?.data?.error || 'Registration failed. Please try again.');
         }
     };
 
     return (
-        <div className="register-container">
-            <form onSubmit={handleSubmit} className="register-form">
-                <h2>Register</h2>
+        <div className="auth-container">
+            <div className="auth-box">
+                <h2>Create Account</h2>
                 {error && <div className="error-message">{error}</div>}
-                
-                <div className="form-group">
-                    <label htmlFor="email">Email:</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                    />
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Profile Image</label>
+                        <div className="profile-image-grid">
+                            {profileImages.map((image) => (
+                                <div 
+                                    key={image.value} 
+                                    className={`profile-image-option ${profileImage === image.value ? 'selected' : ''}`}
+                                    onClick={() => setProfileImage(image.value)}
+                                >
+                                    <img 
+                                        src={image.image} 
+                                        alt={image.label} 
+                                        className="profile-image-preview"
+                                    />
+                                    <span className="profile-image-label">{image.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <button type="submit" className="auth-button">Register</button>
+                </form>
+                <div className="auth-links">
+                    <p>Already have an account? <a href="/login">Login</a></p>
                 </div>
-
-                <div className="form-group">
-                    <label htmlFor="password">Password:</label>
-                    <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="confirmPassword">Confirm Password:</label>
-                    <input
-                        type="password"
-                        id="confirmPassword"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm your password"
-                    />
-                </div>
-
-                <button type="submit" className="register-button">
-                    Register
-                </button>
-            </form>
+            </div>
         </div>
     );
-};
+}
 
 export default Register; 

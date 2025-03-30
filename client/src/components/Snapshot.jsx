@@ -37,17 +37,13 @@ const Snapshot = ({ username, profileImage }) => {
     }, []);
 
     return (
-        <div className="snapshot-container">
-            <h2>{username}</h2>
-            <div className="profile-image-container">
+        <div className="snapshot">
+            <div className="snapshot-header">
+                <h2>{username}</h2>
                 <img 
                     src={profileImage} 
                     alt="Profile" 
                     className="profile-image"
-                    onError={(e) => {
-                        e.target.onerror = null; // Prevent infinite loop
-                        e.target.src = '/GolfBall.png';
-                    }}
                 />
             </div>
             <table className="snapshot-table">
