@@ -1125,33 +1125,94 @@ app.post('/api/scoretracker/update-results', authenticateToken, async (req, res)
         console.log('Starting score tracker results update...');
         const client = await pool.connect();
         
-        // Read WeeklyResult.xlsx
-        console.log('Reading WeeklyResult.xlsx...');
-        const workbook = XLSX.readFile('WeeklyResult.xlsx');
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const results = XLSX.utils.sheet_to_json(worksheet);
-        console.log(`Found ${results.length} results to process`);
+        try {
+            await client.query('BEGIN');
 
-        // Update each entry in score_tracker
-        for (const result of results) {
-            console.log(`Processing result for ${result.Golfer} in ${result.Event}`);
-            const updateResult = await client.query(
-                `UPDATE score_tracker 
-                SET result = $1, earnings = $2 
-                WHERE selection = $3 AND event = $4
-                RETURNING *`,
-                [result.Result, result.Earnings, result.Golfer, result.Event]
-            );
-            console.log(`Update result: ${updateResult.rowCount} rows affected`);
+            // Read WeeklyResult.xlsx from the Data folder
+            const filePath = 'Data/WeeklyResult.xlsx';
+            console.log('Attempting to read file from:', filePath);
+            
+            try {
+                const workbook = XLSX.readFile(filePath);
+                console.log('Successfully read Excel file');
+                console.log('Sheet names:', workbook.SheetNames);
+                
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const results = XLSX.utils.sheet_to_json(worksheet);
+                console.log('Number of results found:', results.length);
+                console.log('Sample result:', results[0]);
+
+                // Get the current tournament event from the most recent entries without results
+                const currentTournamentResult = await client.query(`
+                    SELECT event 
+                    FROM score_tracker 
+                    WHERE result IS NULL 
+                    ORDER BY id DESC 
+                    LIMIT 1
+                `);
+                console.log('Current tournament query result:', JSON.stringify(currentTournamentResult.rows, null, 2));
+
+                if (currentTournamentResult.rows.length === 0) {
+                    throw new Error('No pending tournament results to update');
+                }
+
+                const currentTournament = currentTournamentResult.rows[0].event;
+                console.log(`Processing results for tournament: ${currentTournament}`);
+
+                // Update only the entries for the current tournament
+                for (const result of results) {
+                    // Convert earnings string to number
+                    const earnings = typeof result.Earnings === 'string' 
+                        ? parseFloat(result.Earnings.replace(/[$,]/g, ''))
+                        : result.Earnings;
+
+                    console.log(`Processing result for ${result.Player} in ${currentTournament}`);
+                    
+                    // First check if the entry exists
+                    const entryCheck = await client.query(
+                        'SELECT * FROM score_tracker WHERE selection = $1 AND event = $2 AND result IS NULL',
+                        [result.Player, currentTournament]
+                    );
+
+                    if (entryCheck.rows.length > 0) {
+                        const updateResult = await client.query(
+                            `UPDATE score_tracker 
+                            SET result = $1, earnings = $2 
+                            WHERE selection = $3 
+                            AND event = $4
+                            AND result IS NULL
+                            RETURNING *`,
+                            [result.Result, earnings, result.Player, currentTournament]
+                        );
+                        console.log(`Update result for ${result.Player}:`, JSON.stringify(updateResult.rows, null, 2));
+                    } else {
+                        console.log(`No matching entry found for ${result.Player}`);
+                    }
+                }
+
+                await client.query('COMMIT');
+                console.log('Score tracker results update completed successfully');
+                res.json({ 
+                    message: 'Score tracker results updated successfully',
+                    tournament: currentTournament
+                });
+            } catch (fileError) {
+                console.error('Error reading Excel file:', fileError);
+                throw new Error(`Failed to read Excel file: ${fileError.message}`);
+            }
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-
-        client.release();
-        console.log('Score tracker results update completed successfully');
-        res.json({ message: 'Score tracker results updated successfully' });
     } catch (error) {
         console.error('Error updating score tracker results:', error);
-        res.status(500).json({ error: 'Error updating score tracker results' });
+        res.status(500).json({ 
+            error: 'Error updating score tracker results',
+            details: error.message
+        });
     }
 });
 

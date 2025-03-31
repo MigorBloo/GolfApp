@@ -27,8 +27,8 @@ function GolferTable({ golfers, eventInfo, sortOption, onSortChange, onGolferSel
     };
 
     // Update these constants at the top of your component
-    const eventDate = "2025-03-30";
-    const startTime = "5:00 PM EST";
+    const eventDate = "2025-04-03";
+    const startTime = "9:00 AM EST";
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
