@@ -1,3 +1,58 @@
+.snapshot {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+}
+
+.snapshot-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.snapshot-header h2 {
+    margin: 0;
+    margin-right: 15px;
+}
+
+.profile-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.snapshot-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.snapshot-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.label-cell {
+    font-weight: bold;
+    color: #666;
+}
+
+.value-cell {
+    text-align: right;
+}
+
+.value-cell.behind-leader {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.value-cell.ahead-or-tied {
+    color: #28a745;
+    font-weight: bold;
+}
+
 .snapshot-container {
     background-color: #ffffff;
     border-radius: 8px;
@@ -15,38 +70,6 @@
     display: flex;
     justify-content: center;
     margin-bottom: 15px;
-}
-
-.profile-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #007bff;
-}
-
-.snapshot-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.snapshot-table td {
-    padding: 8px;
-    border-bottom: 1px solid #eee;
-}
-
-.label-cell {
-    font-weight: 600;
-    color: #666;
-}
-
-.value-cell {
-    text-align: right;
-    color: #333;
-}
-
-.snapshot-table tr:last-child td {
-    border-bottom: none;
 }
 
 .snapshot-container table {
