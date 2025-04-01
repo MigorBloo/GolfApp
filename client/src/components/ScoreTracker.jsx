@@ -7,55 +7,42 @@ const ScoreTracker = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [totalEarnings, setTotalEarnings] = useState(0);
-    const [updateStatus, setUpdateStatus] = useState('');
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // First update the weekly results
-                await updateWeeklyResults();
-                
-                // Then fetch the updated score tracker entries
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/scoretracker/entries`);
-                setEntries(response.data);
-
-                // Calculate total earnings
-                const total = response.data.reduce((sum, entry) => {
-                    const earnings = entry.earnings ? Number(entry.earnings) : 0;
-                    return sum + earnings;
-                }, 0);
-                setTotalEarnings(total);
-                
-                setLoading(false);
-            } catch (err) {
-                console.error('Error fetching score tracker data:', err);
-                setError('Failed to load score tracker data');
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    const updateWeeklyResults = async () => {
+    const fetchData = async () => {
         try {
+            // Get the token from localStorage
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('No authentication token found');
             }
 
-            setUpdateStatus('Updating results...');
-            const response = await axios.post('/api/scoretracker/update-results', {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            // Set up axios headers with the token
+            const headers = {
+                Authorization: `Bearer ${token}`
+            };
+
+            // Fetch the score tracker entries
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/scoretracker/entries`, { headers });
+            setEntries(response.data);
+
+            // Calculate total earnings
+            const total = response.data.reduce((sum, entry) => {
+                const earnings = entry.earnings ? Number(entry.earnings) : 0;
+                return sum + earnings;
+            }, 0);
+            setTotalEarnings(total);
             
-            setUpdateStatus('Results updated successfully!');
-            await fetchData(); // Refresh the data
+            setLoading(false);
         } catch (err) {
-            console.error('Error updating weekly results:', err);
-            setUpdateStatus(err.response?.data?.details || 'Failed to update results. Please check the server logs.');
+            console.error('Error fetching score tracker data:', err);
+            setError('Failed to load score tracker data');
+            setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     if (loading) return <div>Loading score tracker...</div>;
     if (error) return <div>Error: {error}</div>;
@@ -63,6 +50,12 @@ const ScoreTracker = () => {
     return (
         <div className="score-tracker-container">
             <h2>Score Tracker</h2>
+            <div className="score-tracker-header">
+                <div className="total-earnings">
+                    Total Earnings: ${totalEarnings.toLocaleString()}
+                </div>
+            </div>
+
             <div className="score-tracker-table-container">
                 <table className="score-tracker-table">
                     <thead>

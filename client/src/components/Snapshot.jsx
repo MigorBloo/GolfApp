@@ -11,51 +11,63 @@ const Snapshot = ({ username, profileImage }) => {
         { label: 'Top10s', value: null }
     ]);
 
-    useEffect(() => {
-        const fetchSnapshotData = async () => {
-            try {
-                console.log('Fetching snapshot data...');
-                const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:8001/api/snapshot', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                console.log('Received snapshot data:', response.data);
-                
-                const formatCurrency = (value) => {
-                    return new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(value);
-                };
+    const formatCurrency = (value) => {
+        if (value === null || value === undefined) return '$0';
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                console.log('Fetching leaderboard data for snapshot...');
+                const response = await axios.get('/api/leaderboard');
+                console.log('Received leaderboard data:', response.data);
+
+                // Find the current user's data
+                const userData = response.data.find(row => row.username === username);
+                if (!userData) {
+                    console.error('User data not found in leaderboard');
+                    return;
+                }
+
+                // Get the leader's earnings (first row)
+                const leaderEarnings = response.data[0].earnings;
+                const behindLeader = leaderEarnings - userData.earnings;
+                
                 const newData = [
-                    { label: 'Current Ranking', value: response.data.current_ranking || 0 },
-                    { label: 'Earnings', value: formatCurrency(response.data.earnings) },
+                    { label: 'Current Ranking', value: userData.rank },
+                    { label: 'Earnings', value: formatCurrency(userData.earnings) },
                     { 
                         label: 'Behind Leader', 
-                        value: formatCurrency(response.data.behind_leader),
-                        className: response.data.behind_leader > 0 ? 'behind-leader' : 'ahead-or-tied'
+                        value: formatCurrency(behindLeader),
+                        className: behindLeader > 0 ? 'behind-leader' : 'ahead-or-tied'
                     },
-                    { label: 'Winners', value: response.data.winners || 0 },
-                    { label: 'Top10s', value: response.data.top10s || 0 }
+                    { label: 'Winners', value: userData.winners },
+                    { label: 'Top10s', value: userData.top10s }
                 ];
 
                 console.log('Formatted snapshot data:', newData);
                 setSnapshotData(newData);
             } catch (err) {
-                console.error('Error fetching snapshot:', err);
+                console.error('Error fetching data:', err);
+                // Set default values on error
+                setSnapshotData([
+                    { label: 'Current Ranking', value: 0 },
+                    { label: 'Earnings', value: formatCurrency(0) },
+                    { label: 'Behind Leader', value: formatCurrency(0) },
+                    { label: 'Winners', value: 0 },
+                    { label: 'Top10s', value: 0 }
+                ]);
             }
         };
 
-        fetchSnapshotData();
-    }, []);
-
-    console.log('Current snapshot data state:', snapshotData);
+        fetchData();
+    }, [username]);
 
     return (
         <div className="snapshot">

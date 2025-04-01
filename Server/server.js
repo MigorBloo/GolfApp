@@ -772,20 +772,78 @@ app.get('/api/scoretracker/entries', authenticateToken, async (req, res) => {
 // Get leaderboard data
 app.get('/api/leaderboard', async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT 
-                u.username,
-                SUM(COALESCE(st.earnings, 0)) as total_earnings,
-                COUNT(DISTINCT st.event) as tournaments_played
-            FROM users u
-            LEFT JOIN score_tracker st ON u.id = st.user_id
-            GROUP BY u.id, u.username
-            ORDER BY total_earnings DESC
+        console.log('Fetching leaderboard data...');
+        
+        // First, let's check the raw data
+        const rawData = await pool.query(`
+            SELECT st.*, u.username 
+            FROM score_tracker st 
+            JOIN users u ON st.user_id = u.id 
+            ORDER BY st.id DESC
         `);
+        console.log('Raw score tracker data:', rawData.rows);
+
+        // Get leaderboard data with detailed logging
+        const result = await pool.query(`
+            WITH user_stats AS (
+                SELECT 
+                    u.id,
+                    u.username,
+                    COALESCE(SUM(CAST(st.earnings AS DECIMAL)), 0) as total_earnings,
+                    COALESCE(COUNT(CASE WHEN st.result = '1' THEN 1 END), 0) as winners,
+                    COALESCE(COUNT(CASE 
+                        WHEN st.result = '1' THEN 1
+                        WHEN st.result LIKE 'T%' AND CAST(SUBSTRING(st.result FROM 2) AS INTEGER) <= 10 THEN 1
+                        WHEN st.result ~ '^[0-9]+$' AND CAST(st.result AS INTEGER) <= 10 THEN 1
+                    END), 0) as top10s,
+                    COUNT(st.id) as events_played
+                FROM users u
+                LEFT JOIN score_tracker st ON u.id = st.user_id
+                GROUP BY u.id, u.username
+            ),
+            ranked_stats AS (
+                SELECT 
+                    username,
+                    total_earnings as earnings,
+                    events_played,
+                    winners,
+                    top10s,
+                    ROW_NUMBER() OVER (ORDER BY total_earnings DESC NULLS LAST) as rank
+                FROM user_stats
+            )
+            SELECT 
+                rank,
+                username,
+                earnings,
+                events_played,
+                winners,
+                top10s
+            FROM ranked_stats
+            ORDER BY rank
+        `);
+
+        console.log('Leaderboard query results:', result.rows);
+        
+        // Log each row individually for debugging
+        result.rows.forEach((row, index) => {
+            console.log(`Row ${index + 1}:`, {
+                rank: row.rank,
+                username: row.username,
+                earnings: row.earnings,
+                events_played: row.events_played,
+                winners: row.winners,
+                top10s: row.top10s
+            });
+        });
+
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        res.status(500).json({ error: 'Failed to fetch leaderboard' });
+        console.error('Error in leaderboard endpoint:', error);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ 
+            error: 'Failed to fetch leaderboard data',
+            details: error.message
+        });
     }
 });
 
@@ -793,26 +851,74 @@ app.get('/api/leaderboard', async (req, res) => {
 app.get('/api/snapshot', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await pool.query(`
+        console.log('Fetching snapshot for user:', userId);
+
+        // Get user's stats
+        const statsResult = await pool.query(`
             SELECT 
-                u.username,
-                st.event,
-                st.selection,
-                st.result,
-                st.earnings
-            FROM users u
-            JOIN score_tracker st ON u.id = st.user_id
+                COALESCE(SUM(CAST(st.earnings AS DECIMAL)), 0) as total_earnings,
+                COALESCE(COUNT(CASE WHEN st.result = '1' THEN 1 END), 0) as winners,
+                COALESCE(COUNT(CASE 
+                    WHEN st.result = '1' THEN 1
+                    WHEN st.result LIKE 'T%' AND CAST(SUBSTRING(st.result FROM 2) AS INTEGER) <= 10 THEN 1
+                    WHEN st.result ~ '^[0-9]+$' AND CAST(st.result AS INTEGER) <= 10 THEN 1
+                END), 0) as top10s
+            FROM score_tracker st
             WHERE st.user_id = $1
-            AND st.event = (
-                SELECT event 
-                FROM score_tracker 
-                WHERE user_id = $1
-                ORDER BY id DESC 
-                LIMIT 1
-            )
-            ORDER BY st.earnings DESC NULLS LAST
         `, [userId]);
-        res.json(result.rows);
+
+        // Get user's current ranking
+        const rankingResult = await pool.query(`
+            WITH user_stats AS (
+                SELECT 
+                    u.id,
+                    u.username,
+                    COALESCE(SUM(CAST(st.earnings AS DECIMAL)), 0) as total_earnings
+                FROM users u
+                LEFT JOIN score_tracker st ON u.id = st.user_id
+                GROUP BY u.id, u.username
+            )
+            SELECT 
+                ROW_NUMBER() OVER (ORDER BY total_earnings DESC NULLS LAST) as current_ranking
+            FROM user_stats
+            WHERE id = $1
+        `, [userId]);
+
+        // Get leader's earnings
+        const leaderResult = await pool.query(`
+            WITH user_stats AS (
+                SELECT 
+                    u.id,
+                    u.username,
+                    COALESCE(SUM(CAST(st.earnings AS DECIMAL)), 0) as total_earnings
+                FROM users u
+                LEFT JOIN score_tracker st ON u.id = st.user_id
+                GROUP BY u.id, u.username
+            )
+            SELECT MAX(total_earnings) as leader_earnings
+            FROM user_stats
+        `);
+
+        const stats = statsResult.rows[0];
+        const ranking = rankingResult.rows[0];
+        const leader = leaderResult.rows[0];
+
+        console.log('Snapshot data:', {
+            stats,
+            ranking,
+            leader
+        });
+
+        const snapshotData = {
+            current_ranking: ranking.current_ranking,
+            earnings: stats.total_earnings,
+            behind_leader: leader.leader_earnings - stats.total_earnings,
+            winners: stats.winners,
+            top10s: stats.top10s
+        };
+
+        console.log('Final snapshot data:', snapshotData);
+        res.json(snapshotData);
     } catch (error) {
         console.error('Error fetching snapshot:', error);
         res.status(500).json({ error: 'Failed to fetch snapshot' });
@@ -1024,26 +1130,37 @@ app.post('/api/save', authenticateToken, async (req, res) => {
 
 // Add new endpoint to lock/unlock tournament
 app.post('/api/tournament/lock', async (req, res) => {
-  const { event, lock } = req.body;
-  const client = await pool.connect();
+    const { event, lock } = req.body;
+    const client = await pool.connect();
 
-  try {
-    await client.query('BEGIN');
+    try {
+        await client.query('BEGIN');
 
-    const result = await client.query(
-      'UPDATE tournament_selections SET is_locked = $1 WHERE event = $2 RETURNING *',
-      [lock, event]
-    );
+        // First check if the tournament exists
+        const checkResult = await client.query(
+            'SELECT * FROM tournament_selections WHERE event = $1',
+            [event]
+        );
 
-    await client.query('COMMIT');
-    res.json(result.rows[0]);
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error updating tournament lock status:', error);
-    res.status(500).json({ error: 'Failed to update tournament lock status' });
-  } finally {
-    client.release();
-  }
+        if (checkResult.rows.length === 0) {
+            throw new Error('Tournament not found');
+        }
+
+        // Update the lock status
+        const result = await client.query(
+            'UPDATE tournament_selections SET is_locked = $1 WHERE event = $2 RETURNING *',
+            [lock, event]
+        );
+
+        await client.query('COMMIT');
+        res.json(result.rows[0]);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error updating tournament lock status:', error);
+        res.status(500).json({ error: 'Failed to update tournament lock status' });
+    } finally {
+        client.release();
+    }
 });
 
 // Get user profile endpoint
@@ -1272,6 +1389,36 @@ app.post('/api/tournament-selections/lock', authenticateToken, async (req, res) 
     } catch (error) {
         console.error('Error locking tournament:', error);
         res.status(500).json({ error: 'Failed to lock tournament' });
+    }
+});
+
+// Debug endpoint to check raw score tracker data
+app.get('/api/debug/score-tracker-raw', async (req, res) => {
+    try {
+        console.log('Checking raw score tracker data...');
+        
+        const result = await pool.query(`
+            SELECT 
+                st.id,
+                st.user_id,
+                u.username,
+                st.event,
+                st.selection,
+                st.result,
+                st.earnings
+            FROM score_tracker st
+            JOIN users u ON st.user_id = u.id
+            ORDER BY st.id DESC
+        `);
+
+        console.log('Raw score tracker data:', result.rows);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error in debug endpoint:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch raw data',
+            details: error.message
+        });
     }
 });
 

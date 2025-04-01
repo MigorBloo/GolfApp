@@ -11,16 +11,8 @@ function Leaderboard() {
             try {
                 // Fetch leaderboard data
                 const leaderboardResponse = await axios.get('/api/leaderboard');
-                // Sort the data by earnings in descending order
-                const sortedData = leaderboardResponse.data.sort((a, b) => 
-                    (b['Total Prize Money'] || 0) - (a['Total Prize Money'] || 0)
-                );
-                // Add rank based on sorted position
-                const rankedData = sortedData.map((row, index) => ({
-                    ...row,
-                    Rank: index + 1
-                }));
-                setLeaderboardData(rankedData);
+                console.log('Received leaderboard data:', leaderboardResponse.data);
+                setLeaderboardData(leaderboardResponse.data);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -50,14 +42,14 @@ function Leaderboard() {
                     <tbody>
                         {leaderboardData.map((row, index) => (
                             <tr key={index} className={index === 0 ? 'leader' : ''}>
-                                <td>{row.Rank}</td>
+                                <td>{row.rank}</td>
                                 <td>{row.username || '-'}</td>
                                 <td className="earnings">
-                                    {row['Total Prize Money'] ? 
-                                        `$${row['Total Prize Money'].toLocaleString()}` : '-'}
+                                    {row.earnings ? 
+                                        `$${Number(row.earnings).toLocaleString()}` : '-'}
                                 </td>
-                                <td>{row.Winners || '-'}</td>
-                                <td>{row.Top10s || '-'}</td>
+                                <td>{row.winners || '-'}</td>
+                                <td>{row.top10s || '-'}</td>
                             </tr>
                         ))}
                     </tbody>
